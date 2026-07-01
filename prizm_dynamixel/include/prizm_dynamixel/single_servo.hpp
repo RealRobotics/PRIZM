@@ -5,8 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rcutils/cmdline_parser.h>
 #include <dynamixel_sdk/dynamixel_sdk.h>
-#include <std_msgs/msg/u_int8.h>
-
+#include "prizm_interfaces/msg/dynamixel_pos.h"
 
 class SingleServo : public rclcpp::Node{
     public:

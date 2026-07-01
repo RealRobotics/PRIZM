@@ -8,7 +8,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(dynamixel_sdk REQUIRED)
-find_package(std_msgs REQUIRED)
+find_package(prizm_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -19,7 +19,7 @@ include_directories(include)
 add_executable(single_servo src/single_servo.cpp)
 ament_target_dependencies(single_servo
   dynamixel_sdk
-  std_msgs
+  prizm_interfaces
   rclcpp
 )
 

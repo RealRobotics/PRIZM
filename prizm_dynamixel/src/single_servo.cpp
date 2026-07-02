@@ -1,6 +1,6 @@
 #include "prizm_dynamixel/single_servo.hpp"
 
-#define DEVICE_PORT "dev/ttyUSB0"
+#define DEVICE_PORT "/dev/ttyUSB0"
 #define BAUD_RATE 57600
 #define ADDR_OPERATING_MODE 11
 #define ADDR_TORQUE_ENABLE 64

@@ -22,13 +22,13 @@ class SingleMotor : public rclcpp::Node {
     virtual ~SingleMotor();
 
    private:
-    rclcpp::Subscription<DynaVel>::SharedPtr position_sub_;
-    rclcpp::Service<DynaGetVel>::SharedPtr get_position_srv_;
-    void set_position_callback(const DynaVel::SharedPtr msg);
-    void get_position_service(std::shared_ptr<DynaGetVel::Request> request,
+    rclcpp::Subscription<DynaVel>::SharedPtr velocity_sub_;
+    rclcpp::Service<DynaGetVel>::SharedPtr get_velocity_srv_;
+    void set_velocity_callback(const DynaVel::SharedPtr msg);
+    void get_velocity_service(std::shared_ptr<DynaGetVel::Request> request,
                       std::shared_ptr<DynaGetVel::Response> response);
 
-    int current_pos;
+    int current_vel = 0, current_acc = 0;
     dynamixel::PortHandler* port_handler_;
     dynamixel::PacketHandler* packet_handler_;
 };

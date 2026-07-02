@@ -6,6 +6,8 @@
 #define ADDR_TORQUE_ENABLE 64
 #define ADDR_GOAL_VELOCITY 104
 #define ADDR_PRESENT_VELOCITY 128
+#define ADDR_PROFILE_ACCEL 108
+#define ADDR_PROFILE_VELOCITY 112
 
 SingleMotor::SingleMotor(dynamixel::PortHandler* portHandler,
                          dynamixel::PacketHandler* packetHandler)
@@ -22,22 +24,41 @@ SingleMotor::SingleMotor(dynamixel::PortHandler* portHandler,
                                 .reliable()
                                 .durability_volatile();
 
-    position_sub_ = this->create_subscription<DynaVel>(
+    velocity_sub_ = this->create_subscription<DynaVel>(
         "dyna_set_vel", QOS_RKL10V,
-        std::bind(&SingleMotor::set_position_callback, this, _1));
+        std::bind(&SingleMotor::set_velocity_callback, this, _1));
 
-    get_position_srv_ = this->create_service<DynaGetVel>(
+    get_velocity_srv_ = this->create_service<DynaGetVel>(
         "dyna_get_vel",
-        std::bind(&SingleMotor::get_position_service, this, _1, _2));
+        std::bind(&SingleMotor::get_velocity_service, this, _1, _2));
 }
 
-void SingleMotor::set_position_callback(const DynaVel::SharedPtr msg) {
+void SingleMotor::set_velocity_callback(const DynaVel::SharedPtr msg) {
     uint8_t dxl_error = 0x00;
 
     uint32_t goal_vel = (unsigned int)msg->velocity;
+    uint32_t goal_accl = (unsigned int)msg->acceleration;
 
+    if (msg->acceleration != current_acc) {
+        auto dxl_comm_result = packet_handler_->write4ByteTxRx(
+            port_handler_, (uint8_t)msg->id, ADDR_PROFILE_ACCEL, goal_accl,
+            &dxl_error);
+        if (dxl_comm_result != COMM_SUCCESS) {
+            RCLCPP_INFO(this->get_logger(), "%s",
+                        packet_handler_->getTxRxResult(dxl_comm_result));
+        } else if (dxl_error != 0) {
+            RCLCPP_INFO(this->get_logger(), "%s",
+                        packet_handler_->getRxPacketError(dxl_error));
+        } else {
+            RCLCPP_INFO(this->get_logger(),
+                        "Set [ID: %d] [Profile acceleration: %d]", msg->id,
+                        msg->acceleration);
+        }
+    }
+
+    // set the velocity goal
     auto dxl_comm_result = packet_handler_->write4ByteTxRx(
-        port_handler_, (uint8_t)msg->id, ADDR_GOAL_VELOCITY, 04,
+        port_handler_, (uint8_t)msg->id, ADDR_GOAL_VELOCITY, goal_vel,
         &dxl_error);
 
     if (dxl_comm_result != COMM_SUCCESS) {
@@ -47,31 +68,46 @@ void SingleMotor::set_position_callback(const DynaVel::SharedPtr msg) {
         RCLCPP_INFO(this->get_logger(), "%s",
                     packet_handler_->getRxPacketError(dxl_error));
     } else {
-        RCLCPP_INFO(this->get_logger(), "Set [ID: %d] [Goal Position: %d]",
+        RCLCPP_INFO(this->get_logger(), "Set [ID: %d] [Goal velocity: %d]",
                     msg->id, msg->velocity);
     }
 }
 
-void SingleMotor::get_position_service(
+void SingleMotor::get_velocity_service(
     std::shared_ptr<DynaGetVel::Request> request,
     std::shared_ptr<DynaGetVel::Response> response) {
     uint8_t dxl_error = 0x00;
+
     auto dxl_comm_result = packet_handler_->read4ByteTxRx(
         port_handler_, (uint8_t)request->id, ADDR_PRESENT_VELOCITY,
-        reinterpret_cast<uint32_t*>(&current_pos), &dxl_error);
+        reinterpret_cast<uint32_t*>(&current_vel), &dxl_error);
 
     if (dxl_comm_result != COMM_SUCCESS) {
         RCLCPP_ERROR(rclcpp::get_logger("single_motor"),
-                     "Failed to get position.");
+                     "Failed to get velocity.");
     } else {
         RCLCPP_INFO(rclcpp::get_logger("single_motor"),
-                    "Succeeded to get position.");
+                    "Succeeded to get velocity.");
     }
 
-    RCLCPP_INFO(this->get_logger(), "Get [ID: %d] [Present Position: %d]",
-                request->id, current_pos);
+    auto dxl_comm_result = packet_handler_->read4ByteTxRx(
+        port_handler_, (uint8_t)request->id, ADDR_PROFILE_ACCEL,
+        reinterpret_cast<uint32_t*>(&current_acc, &dxl_error));
 
-    response->velocity = current_pos;
+    if (dxl_comm_result != COMM_SUCCESS) {
+        RCLCPP_ERROR(rclcpp::get_logger("single_motor"),
+                     "Failed to get acceleration.");
+    } else {
+        RCLCPP_INFO(rclcpp::get_logger("single_motor"),
+                    "Succeeded to get acceleration.");
+    }
+
+    RCLCPP_INFO(this->get_logger(),
+                "Get [ID: %d] [Present velocity: %d] [Present accelration: %d]",
+                request->id, current_vel, current_acc);
+
+    response->velocity = current_vel;
+    response->acceleration = current_acc;
 }
 
 SingleMotor::~SingleMotor() {}
@@ -79,16 +115,27 @@ SingleMotor::~SingleMotor() {}
 void setupDynamixel(uint8_t dxl_id, dynamixel::PortHandler* portHandler,
                     dynamixel::PacketHandler* packetHandler,
                     uint8_t dxl_error = 0) {
-    // Use Position Control Mode
+    // Use Velocity Control Mode
     auto dxl_comm_result = packetHandler->write1ByteTxRx(
         portHandler, dxl_id, ADDR_OPERATING_MODE, 1, &dxl_error);
 
     if (dxl_comm_result != COMM_SUCCESS) {
         RCLCPP_ERROR(rclcpp::get_logger("read_write_node"),
-                     "Failed to set Position Control Mode.");
+                     "Failed to set velocity Control Mode.");
     } else {
         RCLCPP_INFO(rclcpp::get_logger("read_write_node"),
-                    "Succeeded to set Position Control Mode.");
+                    "Succeeded to set velocity Control Mode.");
+    }
+
+    // Set acceleration mode
+    auto dxl_comm_result = packetHandler->write4ByteTxRx(
+        portHandler, dxl_id, ADDR_PROFILE_ACCEL, 200, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS) {
+        RCLCPP_ERROR(rclcpp::get_logger("read_write_node"),
+                     "Failed to set the profile acceleration.");
+    } else {
+        RCLCPP_INFO(rclcpp::get_logger("read_write_node"),
+                    "Succeeded to set the profile acceleration.");
     }
 
     // Enable Torque of DYNAMIXEL
@@ -105,16 +152,13 @@ void setupDynamixel(uint8_t dxl_id, dynamixel::PortHandler* portHandler,
 }
 
 int main(int argc, char* argv[]) {
-    try
-    {
+    try {
         rclcpp::init(argc, argv);
 
-    }
-    catch(const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
-    
+
     auto portHandler = dynamixel::PortHandler::getPortHandler(DEVICE_PORT);
     auto packetHandler = dynamixel::PacketHandler::getPacketHandler();
     uint8_t dxl_error = 0x00;
@@ -141,8 +185,6 @@ int main(int argc, char* argv[]) {
     auto single_motor =
         std::make_shared<SingleMotor>(portHandler, packetHandler);
 
-    
-    
     rclcpp::spin(single_motor);
     rclcpp::shutdown();
 

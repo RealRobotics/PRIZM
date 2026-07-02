@@ -105,6 +105,16 @@ void setupDynamixel(uint8_t dxl_id, dynamixel::PortHandler* portHandler,
 }
 
 int main(int argc, char* argv[]) {
+    try
+    {
+        rclcpp::init(argc, argv);
+
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
     auto portHandler = dynamixel::PortHandler::getPortHandler(DEVICE_PORT);
     auto packetHandler = dynamixel::PacketHandler::getPacketHandler();
     uint8_t dxl_error = 0x00;
@@ -131,15 +141,7 @@ int main(int argc, char* argv[]) {
     auto single_servo =
         std::make_shared<SingleServo>(portHandler, packetHandler);
 
-    try
-    {
-        rclcpp::init(argc, argv);
-
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
+    
     
     rclcpp::spin(single_servo);
     rclcpp::shutdown();

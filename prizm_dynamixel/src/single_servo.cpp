@@ -61,10 +61,10 @@ void SingleServo::get_position_service(
         reinterpret_cast<uint32_t*>(&current_pos), &dxl_error);
 
     if (dxl_comm_result != COMM_SUCCESS) {
-        RCLCPP_ERROR(rclcpp::get_logger("read_write_node"),
+        RCLCPP_ERROR(rclcpp::get_logger("single_servo"),
                      "Failed to get position.");
     } else {
-        RCLCPP_INFO(rclcpp::get_logger("read_write_node"),
+        RCLCPP_INFO(rclcpp::get_logger("single_servo"),
                     "Succeeded to get position.");
     }
 
@@ -131,7 +131,16 @@ int main(int argc, char* argv[]) {
     auto single_servo =
         std::make_shared<SingleServo>(portHandler, packetHandler);
 
-    rclcpp::init(argc, argv);
+    try
+    {
+        rclcpp::init(argc, argv);
+
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
     rclcpp::spin(single_servo);
     rclcpp::shutdown();
 

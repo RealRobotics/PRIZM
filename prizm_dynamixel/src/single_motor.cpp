@@ -90,7 +90,7 @@ void SingleMotor::get_velocity_service(
                     "Succeeded to get velocity.");
     }
 
-    auto dxl_comm_result = packet_handler_->read4ByteTxRx(
+    dxl_comm_result = packet_handler_->read4ByteTxRx(
         port_handler_, (uint8_t)request->id, ADDR_PROFILE_ACCEL,
         reinterpret_cast<uint32_t*>(&current_acc, &dxl_error));
 
@@ -128,7 +128,7 @@ void setupDynamixel(uint8_t dxl_id, dynamixel::PortHandler* portHandler,
     }
 
     // Set acceleration mode
-    auto dxl_comm_result = packetHandler->write4ByteTxRx(
+    dxl_comm_result = packetHandler->write4ByteTxRx(
         portHandler, dxl_id, ADDR_PROFILE_ACCEL, 200, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS) {
         RCLCPP_ERROR(rclcpp::get_logger("read_write_node"),

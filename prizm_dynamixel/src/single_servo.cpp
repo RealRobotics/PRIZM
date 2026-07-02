@@ -9,7 +9,7 @@
 
 SingleServo::SingleServo(dynamixel::PortHandler* portHandler,
                          dynamixel::PacketHandler* packetHandler)
-    : Node("Single Servo") {
+    : Node("singl_servo") {
     port_handler_ = portHandler;
     packet_handler_ = packetHandler;
 

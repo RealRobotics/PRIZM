@@ -13,7 +13,7 @@ SingleMotor::SingleMotor(dynamixel::PortHandler* portHandler,
     port_handler_ = portHandler;
     packet_handler_ = packetHandler;
 
-    RCLCPP_INFO(this->get_logger(), "Running Single Servo Node");
+    RCLCPP_INFO(this->get_logger(), "Running Single Motor Node");
     this->declare_parameter("qos_depth", 10);
     int8_t qos_depth = 0;
     this->get_parameter("qos_depth", qos_depth);
@@ -23,11 +23,11 @@ SingleMotor::SingleMotor(dynamixel::PortHandler* portHandler,
                                 .durability_volatile();
 
     position_sub_ = this->create_subscription<DynaVel>(
-        "dyna_set_pos", QOS_RKL10V,
+        "dyna_set_vel", QOS_RKL10V,
         std::bind(&SingleMotor::set_position_callback, this, _1));
 
     get_position_srv_ = this->create_service<DynaGetVel>(
-        "dyna_get_pos",
+        "dyna_get_vel",
         std::bind(&SingleMotor::get_position_service, this, _1, _2));
 }
 

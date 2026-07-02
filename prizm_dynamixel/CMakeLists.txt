@@ -23,8 +23,16 @@ ament_target_dependencies(single_servo
   rclcpp
 )
 
+add_executable(single_motor src/single_motor.cpp)
+ament_target_dependencies(single_motor
+  dynamixel_sdk
+  prizm_interfaces
+  rclcpp
+)
+
 install(TARGETS
   single_servo
+  single_motor
   DESTINATION lib/${PROJECT_NAME}
 )
 

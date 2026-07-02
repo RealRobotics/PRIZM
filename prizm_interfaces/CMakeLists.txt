@@ -14,10 +14,12 @@ find_package(rosidl_default_generators REQUIRED)
 
 set(msg_files
     "msg/DynamixelPos.msg"
+    "msg/DynamixelVel.msg"
 )
 
 set(srv_files
 	"srv/DynamixelGetPos.srv"
+	"srv/DynamixelGetVel.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

@@ -1,11 +1,13 @@
+#include <dynamixel_sdk/dynamixel_sdk.h>
+
 #include <cstdint>
 #include <cstdio>
 #include <iostream>
 #include <string>
-#include <dynamixel_sdk/dynamixel_sdk.h>
 
 /**
- * @brief dynamixel data class. use this to hold all your data in a convenient way
+ * @brief dynamixel data class. use this to hold all your data in a convenient
+ * way
  */
 struct dynamixelData {
     uint8_t motorId_ = 0x00;
@@ -14,6 +16,8 @@ struct dynamixelData {
     uint32_t currentVel_ = 0x00;
     uint32_t currentAccel_ = 0x00;
     uint8_t errorStatus_ = 0x00;
+    uint32_t currentVoltage = 0x00;
+    uint32_t temp_ = 0x00;
     bool torqueEnable_ = false;
     uint8_t operatingMode_ = 0x00;
     uint32_t goalPos_ = 0x00;
@@ -32,22 +36,40 @@ struct dynamixelData {
  */
 class DynamixelMotor {
    public:
-    DynamixelMotor();
-    DynamixelMotor(int motorId);
+    DynamixelMotor() { data = dynamixelData(); }
+    DynamixelMotor(uint8_t motorId) {
+        data = dynamixelData();
+        data.motorId_ = motorId;
+    }
 
     dynamixelData data;
 
-    virtual uint8_t getMotorId();
-    virtual uint32_t getOpMode();
-    virtual uint32_t getTemp();
-    virtual uint32_t getErrorStatus();
-    virtual uint32_t getCurrentPos();
-    virtual uint32_t getCurrentVel();
-    virtual uint32_t getCurrentAccel();
+    virtual uint8_t getMotorId() { return data.motorId_; }
+    virtual uint32_t getOpMode() { return data.operatingMode_; }
+    virtual uint32_t getTemp() { return data.temp_; }
+    virtual uint32_t getErrorStatus() { return data.errorStatus_; }
+    virtual uint32_t getCurrentPos() { return data.currentPos_; }
+    virtual uint32_t getCurrentVel() { return data.currentVel_; }
+    virtual uint32_t getCurrentAccel() { return data.currentAccel_; }
+    virtual uint32_t getVoltage() { return data.currentVoltage; }
+
+    virtual uint32_t setPosGoal(uint32_t goal_pos) {
+        data.goalPos_ = goal_pos;
+        return 1;
+    }
+    virtual uint32_t setVelGoal(uint32_t goal_vel) {
+        data.goalVel_ = goal_vel;
+        return 1;
+    }
+    virtual uint32_t setAccelGoal(uint32_t goal_accel) {
+        data.goalAccel_ = goal_accel;
+        return 1;
+    }
 
     static dynamixel::PortHandler* portHandler_;
     static dynamixel::PacketHandler* packetHandler_;
     static dynamixel::GroupBulkRead* groupBulkRead_;
     static dynamixel::GroupBulkWrite* groupBulkWrite_;
+
    private:
 };

@@ -2,8 +2,6 @@
 
 #include "prizm_dynamixel/dynamixelMotor.hpp"
 
-typedef std::pair<rclcpp::ParameterType, rcl_interfaces::msg::ParameterDescriptor> paramPair;
-
 class DynamixelServoDriver : public DynamixelMotor, public rclcpp::Node {
    public:
     void InitServos();
@@ -19,8 +17,11 @@ class DynamixelServoDriver : public DynamixelMotor, public rclcpp::Node {
     DynamixelServoDriver();
     std::string nodeName_;
     std::string address = "/dev/ttyUSB0";
-    int numServos_;
+    std::string paramNamespace_ = "servo_driver";
+    int numServos_, servoMin_, servoMax_;
     std::vector<dynamixelData> servoList_;
 
     rclcpp::Parameter numServosParam_, addresParam_;
 };
+
+int main(int argc, char* argv[]);

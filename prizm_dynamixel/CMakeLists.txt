@@ -36,8 +36,21 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}/config
+)
+
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+# Tell downstream packages where to find our headers
+ament_export_include_directories(include)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files
   set(ament_cmake_copyright_FOUND TRUE)
@@ -46,6 +59,29 @@ if(BUILD_TESTING)
   # a copyright and license is added to all source files
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  set(PROJECT_TEST ${PROJECT_NAME}_test)
+
+
+  ament_add_gtest(${PROJECT_TEST}
+
+    test/servo_driver_test.cpp
+    src/dynamixelServoDriver.cpp
+  )
+  
+  target_include_directories(${PROJECT_TEST} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+
+  ament_target_dependecies(${PROJECT_TEST}
+    rclcpp
+    rclcpp_components
+    prizm_interfaces
+    dynamixel_sdk
+  )
+
+
 endif()
 
 

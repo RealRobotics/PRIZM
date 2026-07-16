@@ -1,6 +1,6 @@
-servo_driver:
-  ros__paramters:
-    device_addr : "/dev/ttyUSB0"
+motor_driver_test:
+  ros__parameters:
+    device_addr : "/dev/ttyUSB2"
     num_servos: 1
     servo_min: 0
     servo_max: 360

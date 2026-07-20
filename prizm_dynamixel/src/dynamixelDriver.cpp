@@ -7,6 +7,7 @@ DynamixelDriver::DynamixelDriver(std::string& nodeName,
     : Node(nodeName, options) {
     this->declare_parameter(paramNamespace_ + ".device_addr", "/dev/ttyUSBX");
     address = this->get_parameter(paramNamespace_ + ".device_addr").as_string();
+    // RCLCPP_INFO(this->get_logger(), "Device port: %s", address.c_str());
 
     auto servo_parameter_map = std::map<std::string, int>{
         {"num_servos", 1},
@@ -29,15 +30,15 @@ DynamixelDriver::DynamixelDriver(std::string& nodeName,
     speedMin_ = this->get_parameter(paramNamespace_ + ".speed_min").as_int();
     speedMax_ = this->get_parameter(paramNamespace_ + ".speed_max").as_int();
 
-    auto ids_parameter_map = std::map<std::string, std::vector<uint8_t>>{
-        {"servo_ids", std::vector<uint8_t>()},
-        {"motor_ids", std::vector<uint8_t>()},
+    auto ids_parameter_map = std::map<std::string, std::vector<int64_t>>{
+        {"servo_ids", std::vector<int64_t>()},
+        {"motor_ids", std::vector<int64_t>()},
     };
     this->declare_parameters(paramNamespace_, ids_parameter_map);
-    servoIds_ =
-        this->get_parameter(paramNamespace_ + ".servo_ids").as_byte_array();
-    motorIds_ =
-        this->get_parameter(paramNamespace_ + ".motor_ids").as_byte_array();
+    servoIdsINT_ =
+        this->get_parameter(paramNamespace_ + ".servo_ids").as_integer_array();
+    motorIdsINT_ =
+        this->get_parameter(paramNamespace_ + ".motor_ids").as_integer_array();
 
     InitMotors();
 }
@@ -46,17 +47,16 @@ void DynamixelDriver::InitMotors() {
     // check that we have as many IDs as we have motors
 
     try {
-        if (numServos_ != (int)servoIds_.size()) {
+        if (numServos_ != (int)servoIdsINT_.size()) {
             RCLCPP_ERROR(
                 this->get_logger(),
                 "Mismatch in number of servos: %d and number of servo ids: %d",
-                numServos_, (int)servoIds_.size());
+                numServos_, (int)servoIdsINT_.size());
             throw std::runtime_error("ServoNumMismatch");
-        }
-        else{
+        } else {
             servoList_.resize(numServos_);
-            for(int i = 0; i < numServos_; i++){
-                servoList_[i].motorId_ = servoIds_[i];
+            for (int i = 0; i < numServos_; i++) {
+                servoList_[i].motorId_ = servoIdsINT_[i];
             }
         }
     } catch (const std::exception& e) {
@@ -64,17 +64,16 @@ void DynamixelDriver::InitMotors() {
     }
 
     try {
-        if (numMotors_ != (int)motorIds_.size()) {
+        if (numMotors_ != (int)motorIdsINT_.size()) {
             RCLCPP_ERROR(
                 this->get_logger(),
-                "Mismatch in number of servos: %d and number of servo ids: %d",
-                numMotors_, (int) motorIds_.size());
+                "Mismatch in number of motors: %d and number of motor ids: %d",
+                numMotors_, (int)motorIdsINT_.size());
             throw std::runtime_error("MotorNumMismatch");
-        }
-        else{
+        } else {
             motorList_.resize(numMotors_);
-            for(int i = 0; i < numMotors_; i++){
-                motorList_[i].motorId_ = motorIds_[i];
+            for (int i = 0; i < numMotors_; i++) {
+                motorList_[i].motorId_ = motorIdsINT_[i];
             }
         }
     } catch (const std::exception& e) {
@@ -83,24 +82,54 @@ void DynamixelDriver::InitMotors() {
 }
 
 void DynamixelDriver::InitDynamixelComms() {
-    // set up packethandler
     // set up porthandler
+    portHandler_ = dynamixel::PortHandler::getPortHandler(address.c_str());
+    // set up packethandler
+    packetHandler_ = dynamixel::PacketHandler::getPacketHandler();
+
     // set up bulkreader
+    groupBulkRead_ = std::make_shared<dynamixel::GroupBulkRead>(portHandler_,
+                                                                packetHandler_);
+
     // setup bulkwriter
+    groupBulkWrite_ = std::make_shared<dynamixel::GroupBulkWrite>(
+        portHandler_, packetHandler_);
 }
-// #ifndef BUILD_TESTING
 
-// int main(int argc, char* argv[]){
-//     rclcpp::init(argc, argv);
-//     RCLCPP_INFO(rclcpp::get_logger("servo_driver"), "Started node");
+void DynamixelDriver::InitGoalSubscribers() {
+    if (numServos_ != 0) {
+        servoGoalPosSub_.resize(numServos_);
+        std::string topic_name = "servo";
+        for (int i = 0; i < numServos_; i++) {
+            topic_name = "servo_" + std::to_string(i);
+            servoGoalPosSub_[i] =
+                this->create_subscription<prizm_interfaces::msg::DynamixelPos>(
+                    topic_name, 10,
+                    std::bind(&DynamixelDriver::servoPosGoalCB_, this,
+                              std::placeholders::_1));
+        }
+    }
 
-//     auto servo_driver = std::make_shared<DynamixelDriver>();
+    if (numMotors_ != 0) {
+        motorGoalPosSub_.resize(numMotors_);
+        for (int i = 0; i < numMotors_; i++) {
+            std::string topic_name = "motor";
+            topic_name = "motor_" + std::to_string(i);
+            motorGoalPosSub_[i] =
+                this->create_subscription<prizm_interfaces::msg::DynamixelVel>(
+                    topic_name, 10,
+                    std::bind(&DynamixelDriver::motorPosGoalCB_, this,
+                              std::placeholders::_1));
+        }
+    }
+}
 
-//     rclcpp::spin(servo_driver);
+void DynamixelDriver::servoPosGoalCB_(const prizm_interfaces::msg::DynamixelPos& msg) {
+    int id = msg.id;
+    servoList_[id].goalPos_ = msg.position;
+}
+void DynamixelDriver::motorPosGoalCB_(const prizm_interfaces::msg::DynamixelVel& msg) {
+    int id = msg.id;
+    motorList_[id].goalVel_ = msg.velocity;
+}
 
-//     rclcpp::shutdown();
-
-//     return 0;
-// }
-
-// #endif

@@ -48,12 +48,12 @@ install(TARGETS
 )
 
 install(DIRECTORY config
-  DESTINATION share/${PROJECT_NAME}/config
+  DESTINATION share/${PROJECT_NAME}
 )
 
 
 install(DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}/launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 # Tell downstream packages where to find our headers
@@ -104,7 +104,7 @@ if(BUILD_TESTING)
   )
 
 
-  add_ros_test(launch/launch_tests.py ARGS
+  add_ros_test(launch/driver_tests.py ARGS
     "TEST_DIR:=${TEST_DIR}"
     "SRC_DIR:=${SRC_DIR}"
     "PKG_NAME:=${PKG_NAME}"

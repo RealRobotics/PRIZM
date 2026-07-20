@@ -2,6 +2,15 @@
 
 #include <prizm_dynamixel/dynamixelDriver.hpp>
 
+
+// Take in argc and argv if you want to get_parameters for node
+class RclCppFixture {
+   public:
+    RclCppFixture(int a, char** v) { rclcpp::init(a, v); }
+    RclCppFixture() { rclcpp::init(0, nullptr); }
+    ~RclCppFixture() { rclcpp::shutdown(); }
+};
+
 class TestMotorDriver : public ::testing::Test {
    protected:
     void SetUp();
@@ -16,43 +25,49 @@ class TestMotorDriver : public ::testing::Test {
 };
 
 void TestMotorDriver::SetUp() {
-    rclcpp::init(0, nullptr);
+    // rclcpp::init(0, nullptr);
     rclcpp::NodeOptions options;
     std::vector<uint8_t> servoIds = {0x00, 0x01, 0x02};
     std::vector<uint8_t> motorIds = {0x06, 0x09, 0x04};
 
-    // options.parameter_overrides().emplace_back(paramNamespace_ + ".device_addr",
+    // options.parameter_overrides().emplace_back(paramNamespace_ +
+    // ".device_addr",
     //                                            "/dev/ttyUSB2");
-    // options.parameter_overrides().emplace_back(paramNamespace_ + ".num_servos", 3);
-    // options.parameter_overrides().emplace_back(paramNamespace_ + ".num_motors", 3);
-    // options.parameter_overrides().emplace_back(paramNamespace_ + ".servo_ids", servoIds);
-    // options.parameter_overrides().emplace_back(paramNamespace_ + ".motor_ids", motorIds);
-    
+    // options.parameter_overrides().emplace_back(paramNamespace_ +
+    // ".num_servos", 3);
+    // options.parameter_overrides().emplace_back(paramNamespace_ +
+    // ".num_motors", 3);
+    // options.parameter_overrides().emplace_back(paramNamespace_ +
+    // ".servo_ids", servoIds);
+    // options.parameter_overrides().emplace_back(paramNamespace_ +
+    // ".motor_ids", motorIds);
 
     node_ = std::make_shared<DynamixelDriver>(nodeName, options);
 }
 
 void TestMotorDriver::TearDown() {
     node_.reset();
-    rclcpp::shutdown();
+    // rclcpp::shutdown();
 }
 
 TEST_F(TestMotorDriver, AddressSetting) {
-    
-
-
     ASSERT_EQ("/dev/ttyUSB2", node_->address);
 }
 
-TEST_F(TestMotorDriver, InitMotors) { 
+TEST_F(TestMotorDriver, InitMotors) {
     ASSERT_EQ(node_->servoList_[2].motorId_, 0x02);
     ASSERT_EQ(node_->motorList_[1].motorId_, 0x09);
 }
+
+TEST_F(TestMotorDriver, ServoPosCallback){}
+
+TEST_F(TestMotorDriver, ServoPosCallback){}
 
 // TEST_F(TestMotorDriver, InitServoMismatch) { FAIL(); }
 // TEST_F(TestMotorDriver, InitMotorsMismatch) { FAIL(); }
 
 int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);
+    RclCppFixture g_rclcppfixture(argc, argv);
     return RUN_ALL_TESTS();
 }

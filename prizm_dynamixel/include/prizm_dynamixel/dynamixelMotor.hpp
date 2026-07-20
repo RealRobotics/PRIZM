@@ -20,6 +20,7 @@ struct dynamixelData {
     uint32_t temp_ = 0x00;
     bool torqueEnable_ = false;
     uint8_t operatingMode_ = 0x00;
+    uint8_t driveMode_ = 0x00;
     uint32_t goalPos_ = 0x00;
     uint32_t goalVel_ = 0x00;
     uint32_t goalAccel_ = 0x00;
@@ -53,23 +54,38 @@ class DynamixelMotor {
     virtual uint32_t getCurrentAccel() { return data.currentAccel_; }
     virtual uint32_t getVoltage() { return data.currentVoltage; }
 
-    virtual uint32_t setPosGoal(uint32_t goal_pos) {
+    virtual uint8_t setPosGoal(uint32_t goal_pos) {
         data.goalPos_ = goal_pos;
         return 1;
     }
-    virtual uint32_t setVelGoal(uint32_t goal_vel) {
+    virtual uint8_t setVelGoal(uint32_t goal_vel) {
         data.goalVel_ = goal_vel;
         return 1;
     }
-    virtual uint32_t setAccelGoal(uint32_t goal_accel) {
+    virtual uint8_t setAccelGoal(uint32_t goal_accel) {
         data.goalAccel_ = goal_accel;
+        return 1;
+    }
+
+    virtual uint8_t toggleTorqueMode(bool torqueMode){
+        data.torqueEnable_ = torqueMode;
+        return 1;
+    }
+
+    virtual uint8_t setOpMode(uint8_t op_mode){
+        data.operatingMode_ = op_mode;
+        return 1;
+    }
+
+    virtual uint8_t setDriveMode(uint8_t drive_mode){
+        data.driveMode_ = drive_mode;
         return 1;
     }
 
     static dynamixel::PortHandler* portHandler_;
     static dynamixel::PacketHandler* packetHandler_;
-    static dynamixel::GroupBulkRead* groupBulkRead_;
-    static dynamixel::GroupBulkWrite* groupBulkWrite_;
+    static std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
+    static std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
 
    private:
 };

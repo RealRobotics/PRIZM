@@ -22,7 +22,7 @@ def generate_test_description():
         ),
         parameters=[launch.substitutions.PathJoinSubstitution([
             launch.substitutions.LaunchConfiguration(
-                'SRC_DIR'), 'config', 'servo_driver.yaml'
+                'SRC_DIR'), 'config', 'test_driver.yaml'
         ])], 
         output='screen'
     )

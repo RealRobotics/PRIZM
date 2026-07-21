@@ -1,6 +1,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <prizm_interfaces/msg/dynamixel_pos.hpp>
 #include <prizm_interfaces/msg/dynamixel_vel.hpp>
+#include <prizm_interfaces/msg/dynamixel_pos_arr.hpp>
+#include <prizm_interfaces/msg/dynamixel_vel_arr.hpp>
 
 #include "prizm_dynamixel/dynamixelMotor.hpp"
 
@@ -31,6 +33,11 @@ enum {
     BWD_TOGGLE = 0x01
 };
 
+typedef prizm_interfaces::msg::DynamixelPos DynaPos;
+typedef prizm_interfaces::msg::DynamixelVel DynaVel;
+typedef prizm_interfaces::msg::DynamixelPosArr DynaPosArr;
+typedef prizm_interfaces::msg::DynamixelVelArr DynaVelArr;
+
 class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
    public:
     // void InitServos();
@@ -55,16 +62,21 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     DynamixelDriver();
     DynamixelDriver(std::string& nodeName, rclcpp::NodeOptions& options);
 
-    std::vector<rclcpp::Subscription<prizm_interfaces::msg::DynamixelPos>::SharedPtr>
+    std::vector<rclcpp::Subscription<DynaPos>::SharedPtr>
         servoGoalPosSub_;
-    std::vector<rclcpp::Subscription<prizm_interfaces::msg::DynamixelVel>::SharedPtr>
+    std::vector<rclcpp::Subscription<DynaVel>::SharedPtr>
         motorGoalPosSub_;
+
+    static dynamixel::PortHandler* portHandler_;
+    static dynamixel::PacketHandler* packetHandler_;
+    static std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
+    static std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
 
    private:
     std::string nodeName_;
 
-    void servoPosGoalCB_(const prizm_interfaces::msg::DynamixelPos &msg);
-    void motorPosGoalCB_(const prizm_interfaces::msg::DynamixelVel &msg);
+    void servoPosGoalCB_(const DynaPos &msg);
+    void motorPosGoalCB_(const DynaVel &msg);
 
     void updateServoGoals();
     void updateMotorGoals();

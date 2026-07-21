@@ -61,7 +61,7 @@ TEST_F(TestMotorDriver, InitMotors) {
 
 TEST_F(TestMotorDriver, ServoPosCallback){}
 
-TEST_F(TestMotorDriver, ServoPosCallback){}
+TEST_F(TestMotorDriver, MotorVelCallback){}
 
 // TEST_F(TestMotorDriver, InitServoMismatch) { FAIL(); }
 // TEST_F(TestMotorDriver, InitMotorsMismatch) { FAIL(); }

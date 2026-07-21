@@ -103,7 +103,7 @@ void DynamixelDriver::InitGoalSubscribers() {
         for (int i = 0; i < numServos_; i++) {
             topic_name = "servo_" + std::to_string(i);
             servoGoalPosSub_[i] =
-                this->create_subscription<prizm_interfaces::msg::DynamixelPos>(
+                this->create_subscription<DynaPos>(
                     topic_name, 10,
                     std::bind(&DynamixelDriver::servoPosGoalCB_, this,
                               std::placeholders::_1));
@@ -116,7 +116,7 @@ void DynamixelDriver::InitGoalSubscribers() {
             std::string topic_name = "motor";
             topic_name = "motor_" + std::to_string(i);
             motorGoalPosSub_[i] =
-                this->create_subscription<prizm_interfaces::msg::DynamixelVel>(
+                this->create_subscription<DynaVel>(
                     topic_name, 10,
                     std::bind(&DynamixelDriver::motorPosGoalCB_, this,
                               std::placeholders::_1));
@@ -124,11 +124,11 @@ void DynamixelDriver::InitGoalSubscribers() {
     }
 }
 
-void DynamixelDriver::servoPosGoalCB_(const prizm_interfaces::msg::DynamixelPos& msg) {
+void DynamixelDriver::servoPosGoalCB_(const DynaPos& msg) {
     int id = msg.id;
     servoList_[id].goalPos_ = msg.position;
 }
-void DynamixelDriver::motorPosGoalCB_(const prizm_interfaces::msg::DynamixelVel& msg) {
+void DynamixelDriver::motorPosGoalCB_(const DynaVel& msg) {
     int id = msg.id;
     motorList_[id].goalVel_ = msg.velocity;
 }

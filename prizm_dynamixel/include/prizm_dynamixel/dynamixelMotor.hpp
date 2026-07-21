@@ -82,10 +82,10 @@ class DynamixelMotor {
         return 1;
     }
 
-    static dynamixel::PortHandler* portHandler_;
-    static dynamixel::PacketHandler* packetHandler_;
-    static std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
-    static std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
+    // dynamixel::PortHandler* portHandler_;
+    // dynamixel::PacketHandler* packetHandler_;
+    // std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
+    // std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
 
    private:
 };

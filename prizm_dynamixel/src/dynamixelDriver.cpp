@@ -97,39 +97,43 @@ void DynamixelDriver::InitDynamixelComms() {
 }
 
 void DynamixelDriver::InitGoalSubscribers() {
-    if (numServos_ != 0) {
-        servoGoalPosSub_.resize(numServos_);
-        std::string topic_name = "servo";
-        for (int i = 0; i < numServos_; i++) {
-            topic_name = "servo_" + std::to_string(i);
-            servoGoalPosSub_[i] =
-                this->create_subscription<DynaPos>(
-                    topic_name, 10,
-                    std::bind(&DynamixelDriver::servoPosGoalCB_, this,
-                              std::placeholders::_1));
-        }
+    // if (numServos_ != 0) {
+    //     servoGoalPosSub_.resize(numServos_);
+    //     std::string topic_name = "servo";
+    //     for (int i = 0; i < numServos_; i++) {
+    //         topic_name = "servo_" + std::to_string(i);
+    //         servoGoalPosSub_[i] =
+    //             this->create_subscription<DynaPos>(
+    //                 topic_name, 10,
+    //                 std::bind(&DynamixelDriver::servoPosGoalCB_, this,
+    //                           std::placeholders::_1));
+    //     }
+    // }
+
+    if (numServos_ != 0){
+        // servoGoalPosSub_ = this->create_subscription
     }
 
-    if (numMotors_ != 0) {
-        motorGoalPosSub_.resize(numMotors_);
-        for (int i = 0; i < numMotors_; i++) {
-            std::string topic_name = "motor";
-            topic_name = "motor_" + std::to_string(i);
-            motorGoalPosSub_[i] =
-                this->create_subscription<DynaVel>(
-                    topic_name, 10,
-                    std::bind(&DynamixelDriver::motorPosGoalCB_, this,
-                              std::placeholders::_1));
-        }
-    }
+    // if (numMotors_ != 0) {
+    //     motorGoalPosSub_.resize(numMotors_);
+    //     for (int i = 0; i < numMotors_; i++) {
+    //         std::string topic_name = "motor";
+    //         topic_name = "motor_" + std::to_string(i);
+    //         motorGoalPosSub_[i] =
+    //             this->create_subscription<DynaVel>(
+    //                 topic_name, 10,
+    //                 std::bind(&DynamixelDriver::motorPosGoalCB_, this,
+    //                           std::placeholders::_1));
+    //     }
+    // }
 }
 
-void DynamixelDriver::servoPosGoalCB_(const DynaPos& msg) {
-    int id = msg.id;
-    servoList_[id].goalPos_ = msg.position;
+void DynamixelDriver::servoPosGoalCB_(const DynaPosArr& msg) {
+    // int id = msg.id;
+    // servoList_[id].goalPos_ = msg.position;
 }
-void DynamixelDriver::motorPosGoalCB_(const DynaVel& msg) {
-    int id = msg.id;
-    motorList_[id].goalVel_ = msg.velocity;
+void DynamixelDriver::motorPosGoalCB_(const DynaVelArr& msg) {
+    // int id = msg.id;
+    // motorList_[id].goalVel_ = msg.velocity;
 }
 

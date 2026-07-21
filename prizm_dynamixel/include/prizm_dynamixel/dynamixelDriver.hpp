@@ -62,21 +62,21 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     DynamixelDriver();
     DynamixelDriver(std::string& nodeName, rclcpp::NodeOptions& options);
 
-    std::vector<rclcpp::Subscription<DynaPos>::SharedPtr>
+    rclcpp::Subscription<DynaPosArr>::SharedPtr
         servoGoalPosSub_;
-    std::vector<rclcpp::Subscription<DynaVel>::SharedPtr>
+    rclcpp::Subscription<DynaVelArr>::SharedPtr
         motorGoalPosSub_;
 
-    static dynamixel::PortHandler* portHandler_;
-    static dynamixel::PacketHandler* packetHandler_;
-    static std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
-    static std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
+    dynamixel::PortHandler* portHandler_;
+    dynamixel::PacketHandler* packetHandler_;
+    std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
+    std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
 
    private:
     std::string nodeName_;
 
-    void servoPosGoalCB_(const DynaPos &msg);
-    void motorPosGoalCB_(const DynaVel &msg);
+    void servoPosGoalCB_(const DynaPosArr &msg);
+    void motorPosGoalCB_(const DynaVelArr &msg);
 
     void updateServoGoals();
     void updateMotorGoals();

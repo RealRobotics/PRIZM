@@ -40,7 +40,9 @@ DynamixelDriver::DynamixelDriver(std::string& nodeName,
     motorIdsINT_ =
         this->get_parameter(paramNamespace_ + ".motor_ids").as_integer_array();
 
+    // InitDynamixelComms();
     InitMotors();
+    InitGoalSubscribers();
 }
 
 void DynamixelDriver::InitMotors() {
@@ -79,6 +81,8 @@ void DynamixelDriver::InitMotors() {
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
+
+    // Enable Torque for all motors
 }
 
 void DynamixelDriver::InitDynamixelComms() {
@@ -97,43 +101,135 @@ void DynamixelDriver::InitDynamixelComms() {
 }
 
 void DynamixelDriver::InitGoalSubscribers() {
-    // if (numServos_ != 0) {
-    //     servoGoalPosSub_.resize(numServos_);
-    //     std::string topic_name = "servo";
-    //     for (int i = 0; i < numServos_; i++) {
-    //         topic_name = "servo_" + std::to_string(i);
-    //         servoGoalPosSub_[i] =
-    //             this->create_subscription<DynaPos>(
-    //                 topic_name, 10,
-    //                 std::bind(&DynamixelDriver::servoPosGoalCB_, this,
-    //                           std::placeholders::_1));
-    //     }
-    // }
-
-    if (numServos_ != 0){
-        // servoGoalPosSub_ = this->create_subscription
+    if (numServos_ != 0) {
+        servoGoalPosSub_ = this->create_subscription<DynaPosArr>(
+            "servo_pos", 10,
+            std::bind(&DynamixelDriver::servoPosGoalCB_, this,
+                      std::placeholders::_1));
     }
 
-    // if (numMotors_ != 0) {
-    //     motorGoalPosSub_.resize(numMotors_);
-    //     for (int i = 0; i < numMotors_; i++) {
-    //         std::string topic_name = "motor";
-    //         topic_name = "motor_" + std::to_string(i);
-    //         motorGoalPosSub_[i] =
-    //             this->create_subscription<DynaVel>(
-    //                 topic_name, 10,
-    //                 std::bind(&DynamixelDriver::motorPosGoalCB_, this,
-    //                           std::placeholders::_1));
-    //     }
-    // }
+    if (numMotors_ != 0) {
+        motorGoalPosSub_ = this->create_subscription<DynaVelArr>(
+            "motor_vel", 10,
+            std::bind(&DynamixelDriver::motorVelGoalCB_, this,
+                      std::placeholders::_1));
+    }
 }
 
 void DynamixelDriver::servoPosGoalCB_(const DynaPosArr& msg) {
-    // int id = msg.id;
-    // servoList_[id].goalPos_ = msg.position;
-}
-void DynamixelDriver::motorPosGoalCB_(const DynaVelArr& msg) {
-    // int id = msg.id;
-    // motorList_[id].goalVel_ = msg.velocity;
+    // 1. check if the number of servo positions received is the same as the
+    // number of servos loaded from config
+
+    int num_incoming_pos = msg.pos_array.size();
+    try {
+        if (num_incoming_pos != numServos_) {
+            RCLCPP_ERROR(this->get_logger(),
+                         "Number of requested positions %d does not agree with "
+                         "the number of servos instantiated %d.",
+                         num_incoming_pos, numServos_);
+            throw std::runtime_error("PosRequestMismatch");
+        }
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << '\n';
+    }
+
+    // 2. update the goal position structs
+    // 2A. should we check for ID agreement?
+    //  for now I will just code it in very dumbly and expect the user to
+    //  provide agreement
+    for (int i = 0; i < numServos_; i++) {
+        try {
+            if (servoList_[i].motorId_ == msg.pos_array[i].id) {
+                servoList_[i].goalPos_ = msg.pos_array[i].position;
+            } else {
+                RCLCPP_ERROR(this->get_logger(),
+                             "Incoming servo message at index 0x%2X requests "
+                             "MotorID 0x%2X, which is different from servolist "
+                             "MotorID 0x%2X at the same index",
+                             i, msg.pos_array[i].id, servoList_[i].motorId_);
+                throw std::runtime_error("ServoIDMismatch");
+            }
+        } catch (const std::exception& e) {
+            std::cerr << e.what() << '\n';
+        }
+    }
 }
 
+void DynamixelDriver::motorVelGoalCB_(const DynaVelArr& msg) {
+    // 1. check if the number of servo positions received is the same as the
+    // number of servos loaded from config
+
+    int num_incoming_pos = msg.vel_array.size();
+    try {
+        if (num_incoming_pos != numMotors_) {
+            RCLCPP_ERROR(this->get_logger(),
+                         "Number of requested positions %d does not agree with "
+                         "the number of servos instantiated %d.",
+                         num_incoming_pos, numMotors_);
+            throw std::runtime_error("PosRequestMismatch");
+        }
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << '\n';
+    }
+
+    // 2. update the goal position structs
+    // 2A. should we check for ID agreement?
+    //  for now I will just code it in very dumbly and expect the user to
+    //  provide agreement
+    for (int i = 0; i < numMotors_; i++) {
+        try {
+            if (motorList_[i].motorId_ == msg.vel_array[i].id) {
+                motorList_[i].goalVel_ = msg.vel_array[i].velocity;
+            } else {
+                RCLCPP_ERROR(this->get_logger(),
+                             "Incoming servo message at index 0x%2X requests "
+                             "MotorID 0x%2X, which is different from servolist "
+                             "MotorID 0x%2X at the same index",
+                             i, msg.vel_array[i].id, motorList_[i].motorId_);
+                throw std::runtime_error("ServoIDMismatch");
+            }
+        } catch (const std::exception& e) {
+            std::cerr << e.what() << '\n';
+        }
+    }
+}
+
+void DynamixelDriver::writeParams(std::map<uint8_t, uint8_t*> val_map,
+                                  uint16_t insturction_code,
+                                  uint16_t instruction_len) {
+    groupBulkWrite_->clearParam();
+    for (auto const& pair : val_map) {
+        groupBulkWrite_->addParam(pair.first, insturction_code, instruction_len,
+                                  pair.second);
+    }
+    groupBulkWrite_->txPacket();
+    groupBulkWrite_->clearParam();
+}
+
+// void DynamixelDriver::readParams(std::map<uint8_t, uint8_t*> val_map,
+//                     uint16_t instruction_code, uint16_t instruction_len){
+// groupBulkRead_->clearParam();
+
+//     for(auto const& pair: val_map){
+//         groupBulkRead_->addParam(pair.first, instruction_code,
+//         instruction_len);
+//     }
+//     groupBulkRead_->rxPacket();
+
+//     }
+
+void DynamixelDriver::enableTorque(std::vector<uint8_t> ids) {
+    for (int i = 0; i < ids.size(); i++) {
+        dxl_comm_result = packetHandler_->write1ByteTxRx(
+            portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+        if (dxl_comm_result != COMM_SUCCESS) {
+            RCLCPP_ERROR(this->get_logger(), "Comm error: %s",
+                         packetHandler_->getTxRxResult(dxl_comm_result));
+        } else if (dxl_error != 0) {
+            RCLCPP_ERROR(this->get_logger(), "Comm error %s",
+                         packetHandler_->getRxPacketError(dxl_error));
+        } else {
+            RCLCPP_INFO(this->get_logger(), "Torque on for ID %2x", ids[i]);
+        }
+    }
+}

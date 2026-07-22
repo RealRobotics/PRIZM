@@ -1,8 +1,8 @@
-#include <rclcpp/rclcpp.hpp>
 #include <prizm_interfaces/msg/dynamixel_pos.hpp>
-#include <prizm_interfaces/msg/dynamixel_vel.hpp>
 #include <prizm_interfaces/msg/dynamixel_pos_arr.hpp>
+#include <prizm_interfaces/msg/dynamixel_vel.hpp>
 #include <prizm_interfaces/msg/dynamixel_vel_arr.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 #include "prizm_dynamixel/dynamixelMotor.hpp"
 
@@ -62,22 +62,31 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     DynamixelDriver();
     DynamixelDriver(std::string& nodeName, rclcpp::NodeOptions& options);
 
-    rclcpp::Subscription<DynaPosArr>::SharedPtr
-        servoGoalPosSub_;
-    rclcpp::Subscription<DynaVelArr>::SharedPtr
-        motorGoalPosSub_;
+    rclcpp::Subscription<DynaPosArr>::SharedPtr servoGoalPosSub_;
+    rclcpp::Subscription<DynaVelArr>::SharedPtr motorGoalPosSub_;
 
     dynamixel::PortHandler* portHandler_;
     dynamixel::PacketHandler* packetHandler_;
     std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
     std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
+    int dxl_comm_result = COMM_TX_FAIL;
+    uint8_t dxl_error = 0;
 
    private:
     std::string nodeName_;
 
-    void servoPosGoalCB_(const DynaPosArr &msg);
-    void motorPosGoalCB_(const DynaVelArr &msg);
+    void servoPosGoalCB_(const DynaPosArr& msg);
+    void motorVelGoalCB_(const DynaVelArr& msg);
 
     void updateServoGoals();
     void updateMotorGoals();
+
+    void writeParams(std::map<uint8_t, uint8_t*> val_map,
+                     uint16_t insturction_code, uint16_t instruction_len);
+
+    void readParams(std::map<uint8_t, uint8_t*> val_map,
+                    uint16_t instruction_code, uint16_t instruction_len);
+
+    void enableTorque(std::vector<uint8_t> ids);
+    // void changeDriveMode();
 };

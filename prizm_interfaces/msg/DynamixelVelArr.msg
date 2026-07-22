@@ -1,2 +1,2 @@
 std_msgs/Header header
-prizm_interfaces/DynamixelPos[] vel_array
+prizm_interfaces/DynamixelVel[] vel_array

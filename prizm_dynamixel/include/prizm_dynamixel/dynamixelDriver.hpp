@@ -44,6 +44,8 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void InitMotors();
     void InitDynamixelComms();
     void InitGoalSubscribers();
+    void enableTorque(std::vector<uint8_t> ids);
+    void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
     // uint8_t getMotorId() override;
     // uint32_t getOpMode() override;
     // uint32_t getTemp() override;
@@ -56,8 +58,12 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     std::string paramNamespace_ = "motor_driver";
     int numServos_, servoMin_, servoMax_;
     int numMotors_, speedMin_, speedMax_;
-    std::vector<dynamixelData> servoList_;
-    std::vector<dynamixelData> motorList_;
+    // std::vector<dynamixelData> servoList_;
+    // std::vector<dynamixelData> motorList_;
+
+    dynamixelMap servoMap_, motorMap_;
+
+
     std::vector<int64_t> motorIdsINT_, servoIdsINT_;
     DynamixelDriver();
     DynamixelDriver(std::string& nodeName, rclcpp::NodeOptions& options);
@@ -87,6 +93,4 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void readParams(std::map<uint8_t, uint8_t*> val_map,
                     uint16_t instruction_code, uint16_t instruction_len);
 
-    void enableTorque(std::vector<uint8_t> ids);
-    // void changeDriveMode();
 };

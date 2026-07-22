@@ -56,9 +56,11 @@ void DynamixelDriver::InitMotors() {
                 numServos_, (int)servoIdsINT_.size());
             throw std::runtime_error("ServoNumMismatch");
         } else {
-            servoList_.resize(numServos_);
+            dynamixelData servo_default;
+            servo_default.operatingMode_ =
+                OperatingModes::EXTENDED_POSITION_CONTROL;
             for (int i = 0; i < numServos_; i++) {
-                servoList_[i].motorId_ = servoIdsINT_[i];
+                servoMap_.insert({{servoIdsINT_[i], servo_default}});
             }
         }
     } catch (const std::exception& e) {
@@ -73,9 +75,10 @@ void DynamixelDriver::InitMotors() {
                 numMotors_, (int)motorIdsINT_.size());
             throw std::runtime_error("MotorNumMismatch");
         } else {
-            motorList_.resize(numMotors_);
+            dynamixelData motor_default;
+            motor_default.operatingMode_ = OperatingModes::VELOCITY_CONTROL;
             for (int i = 0; i < numMotors_; i++) {
-                motorList_[i].motorId_ = motorIdsINT_[i];
+                motorMap_.insert({motorIdsINT_[i], motor_default});
             }
         }
     } catch (const std::exception& e) {
@@ -139,16 +142,17 @@ void DynamixelDriver::servoPosGoalCB_(const DynaPosArr& msg) {
     //  provide agreement
     for (int i = 0; i < numServos_; i++) {
         try {
-            if (servoList_[i].motorId_ == msg.pos_array[i].id) {
-                servoList_[i].goalPos_ = msg.pos_array[i].position;
-            } else {
+            auto find_it = servoMap_.find(msg.pos_array[i].id);
+            if (find_it == servoMap_.end()) {
                 RCLCPP_ERROR(this->get_logger(),
-                             "Incoming servo message at index 0x%2X requests "
-                             "MotorID 0x%2X, which is different from servolist "
-                             "MotorID 0x%2X at the same index",
-                             i, msg.pos_array[i].id, servoList_[i].motorId_);
+                             "Incoming message requests servo id 0x%02x, which "
+                             "is not in the list of valid ids",
+                             msg.pos_array[i].id);
                 throw std::runtime_error("ServoIDMismatch");
+            } else {
+                find_it->second.goalPos_ = msg.pos_array[i].position;
             }
+
         } catch (const std::exception& e) {
             std::cerr << e.what() << '\n';
         }
@@ -178,16 +182,17 @@ void DynamixelDriver::motorVelGoalCB_(const DynaVelArr& msg) {
     //  provide agreement
     for (int i = 0; i < numMotors_; i++) {
         try {
-            if (motorList_[i].motorId_ == msg.vel_array[i].id) {
-                motorList_[i].goalVel_ = msg.vel_array[i].velocity;
-            } else {
+            auto find_it = motorMap_.find(msg.vel_array[i].id);
+            if (find_it == motorMap_.end()) {
                 RCLCPP_ERROR(this->get_logger(),
-                             "Incoming servo message at index 0x%2X requests "
-                             "MotorID 0x%2X, which is different from servolist "
-                             "MotorID 0x%2X at the same index",
-                             i, msg.vel_array[i].id, motorList_[i].motorId_);
-                throw std::runtime_error("ServoIDMismatch");
+                             "Incoming message requests motor id 0x%02x, which "
+                             "is not in the list of valid ids",
+                             msg.vel_array[i].id);
+                throw std::runtime_error("MotorIDMismatch");
+            } else {
+                find_it->second.goalVel_ = msg.vel_array[i].velocity;
             }
+
         } catch (const std::exception& e) {
             std::cerr << e.what() << '\n';
         }
@@ -219,17 +224,56 @@ void DynamixelDriver::writeParams(std::map<uint8_t, uint8_t*> val_map,
 //     }
 
 void DynamixelDriver::enableTorque(std::vector<uint8_t> ids) {
-    for (int i = 0; i < ids.size(); i++) {
-        dxl_comm_result = packetHandler_->write1ByteTxRx(
-            portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
-        if (dxl_comm_result != COMM_SUCCESS) {
-            RCLCPP_ERROR(this->get_logger(), "Comm error: %s",
-                         packetHandler_->getTxRxResult(dxl_comm_result));
-        } else if (dxl_error != 0) {
-            RCLCPP_ERROR(this->get_logger(), "Comm error %s",
-                         packetHandler_->getRxPacketError(dxl_error));
-        } else {
-            RCLCPP_INFO(this->get_logger(), "Torque on for ID %2x", ids[i]);
+    for (size_t i = 0; i < ids.size(); i++) {
+        auto servoMap_it = servoMap_.find(ids[i]);
+        auto motorMap_it = motorMap_.find(ids[i]);
+
+        if (servoMap_it != servoMap_.end()) {
+            // dxl_comm_result = packetHandler_->write1ByteTxRx(
+            //     portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+            servoMap_it->second.torqueEnable_ = true;
+        } else if (motorMap_it != motorMap_.end()) {
+            // dxl_comm_result = packetHandler_->write1ByteTxRx(
+            //     portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+            motorMap_it->second.torqueEnable_ = true;
         }
+        // dxl_comm_result = packetHandler_->write1ByteTxRx(
+        //     portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+
+        //     dxl_comm_result = packetHandler_->write1ByteTxRx(
+        //         portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+        //     if (dxl_comm_result != COMM_SUCCESS) {
+        //         RCLCPP_ERROR(this->get_logger(), "ID: 0x%2X Comm error: %s",
+        //         ids[i],
+        //                      packetHandler_->getTxRxResult(dxl_comm_result));
+        //     } else if (dxl_error != 0) {
+        //         RCLCPP_ERROR(this->get_logger(), "ID: 0x%2X Comm error %s",
+        //         ids[i],
+        //                      packetHandler_->getRxPacketError(dxl_error));
+        //     } else {
+        //         RCLCPP_INFO(this->get_logger(), "Torque on for ID %2x",
+        //         ids[i]);
+        //     }
+    }
+}
+
+void DynamixelDriver::changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map) {
+    // iterate over the map
+    for ( auto const pair: op_mode_map) {
+        // 1. validate that the id is present
+        auto id = pair.first;
+        auto servo_it = servoMap_.find(id);
+        auto motor_it = motorMap_.find(id);
+        
+        // 2. update the struct data
+        if(servo_it != servoMap_.end()){
+            servo_it->second.operatingMode_ = pair.second;
+        } else if(motor_it != motorMap_.end()){
+            motor_it->second.operatingMode_ = pair.second;
+        }
+
+        // 3. then write it to the servo
+        // dxl_comm_result = packetHandler_->write1ByteTxRx(
+        //     portHandler_, pair.first, OP_MODE_ADDR, dxl_error);
     }
 }

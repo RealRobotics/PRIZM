@@ -67,8 +67,12 @@ TEST_F(TestMotorDriver, AddressSetting) {
 }
 
 TEST_F(TestMotorDriver, InitMotors) {
-    ASSERT_EQ(node_->servoList_[2].motorId_, 0x02);
-    ASSERT_EQ(node_->motorList_[1].motorId_, 0x09);
+    auto servo_it = node_->servoMap_.find(0x02);
+    auto motor_it = node_->motorMap_.find(0x09);
+    ASSERT_EQ(servo_it != node_->servoMap_.end(), true);
+    ASSERT_EQ(motor_it != node_->motorMap_.end(), true);
+    // ASSERT_EQ(node_->servoMap_[0x02], 0x02);
+    // ASSERT_EQ(node_->motorMap_[0x09], 0x09);
 }
 
 // TEST_F(TestMotorDriver, InitServoMismatch) { FAIL(); }
@@ -91,9 +95,9 @@ TEST_F(TestMotorDriver, ServoPosCallback) {
 
     rclcpp::spin_some(node_);
 
-    ASSERT_EQ(node_->servoList_[0].goalPos_, p1.position);
-    ASSERT_EQ(node_->servoList_[1].goalPos_, p2.position);
-    ASSERT_EQ(node_->servoList_[2].goalPos_, p3.position);
+    ASSERT_EQ(node_->servoMap_[p1.id].goalPos_, p1.position);
+    ASSERT_EQ(node_->servoMap_[p2.id].goalPos_, p2.position);
+    ASSERT_EQ(node_->servoMap_[p3.id].goalPos_, p3.position);
 }
 
 TEST_F(TestMotorDriver, MotorVelCallback) {
@@ -113,12 +117,36 @@ TEST_F(TestMotorDriver, MotorVelCallback) {
 
     rclcpp::spin_some(node_);
 
-    ASSERT_EQ(node_->motorList_[0].goalVel_, p1.velocity);
-    ASSERT_EQ(node_->motorList_[1].goalVel_, p2.velocity);
-    ASSERT_EQ(node_->motorList_[2].goalVel_, p3.velocity);
+    ASSERT_EQ(node_->motorMap_[p1.id].goalVel_, p1.velocity);
+    ASSERT_EQ(node_->motorMap_[p2.id].goalVel_, p2.velocity);
+    ASSERT_EQ(node_->motorMap_[p3.id].goalVel_, p3.velocity);
 }
 
+TEST_F(TestMotorDriver, TorqueEnableTest) {
+    std::vector<uint8_t> ids = {0x00, 0x02, 0x09};
 
+    node_->enableTorque(ids);
+    ASSERT_EQ(node_->servoMap_[0x00].torqueEnable_, true);
+    ASSERT_EQ(node_->servoMap_[0x02].torqueEnable_, true);
+    ASSERT_EQ(node_->servoMap_[0x01].torqueEnable_, false);
+    ASSERT_EQ(node_->motorMap_[0x09].torqueEnable_, true);
+    ASSERT_EQ(node_->motorMap_[0x04].torqueEnable_, false);
+}
+
+TEST_F(TestMotorDriver, ChangeOperatingModeTest) {
+    std::map<uint8_t, uint8_t> op_mode_map = {
+        {0x00, OperatingModes::EXTENDED_POSITION_CONTROL},
+        {0x01, OperatingModes::POSITION_CONTROL},
+        {0x04, OperatingModes::VELOCITY_CONTROL}};
+    node_->changeOperatingMode(op_mode_map);
+
+    ASSERT_EQ(node_->servoMap_[0x00].operatingMode_,
+              OperatingModes::EXTENDED_POSITION_CONTROL);
+    ASSERT_EQ(node_->servoMap_[0x01].operatingMode_,
+              OperatingModes::POSITION_CONTROL);
+    ASSERT_EQ(node_->motorMap_[0x04].operatingMode_,
+              OperatingModes::VELOCITY_CONTROL);
+}
 
 int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);

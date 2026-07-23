@@ -39,6 +39,8 @@ DynamixelDriver::DynamixelDriver(std::string& nodeName,
         this->get_parameter(paramNamespace_ + ".servo_ids").as_integer_array();
     motorIdsINT_ =
         this->get_parameter(paramNamespace_ + ".motor_ids").as_integer_array();
+    std::copy(servoIdsINT_.begin(), servoIdsINT_.end(), allIds_.begin());
+    allIds_.insert(allIds_.end(), motorIdsINT_.begin(), motorIdsINT_.end());
 
     // InitDynamixelComms();
     InitMotors();
@@ -202,6 +204,7 @@ void DynamixelDriver::motorVelGoalCB_(const DynaVelArr& msg) {
 void DynamixelDriver::writeParams(std::map<uint8_t, uint8_t*> val_map,
                                   uint16_t insturction_code,
                                   uint16_t instruction_len) {
+    std::scoped_lock lock(comms_mutex_);
     groupBulkWrite_->clearParam();
     for (auto const& pair : val_map) {
         groupBulkWrite_->addParam(pair.first, insturction_code, instruction_len,
@@ -224,6 +227,8 @@ void DynamixelDriver::writeParams(std::map<uint8_t, uint8_t*> val_map,
 //     }
 
 void DynamixelDriver::enableTorque(std::vector<uint8_t> ids) {
+    std::scoped_lock lock(comms_mutex_);
+
     for (size_t i = 0; i < ids.size(); i++) {
         auto servoMap_it = servoMap_.find(ids[i]);
         auto motorMap_it = motorMap_.find(ids[i]);
@@ -257,7 +262,48 @@ void DynamixelDriver::enableTorque(std::vector<uint8_t> ids) {
     }
 }
 
+void DynamixelDriver::toggleTorque(std::vector<uint8_t> ids, bool toggle) {
+    std::scoped_lock lock(comms_mutex_);
+
+    for (size_t i = 0; i < ids.size(); i++) {
+        auto servoMap_it = servoMap_.find(ids[i]);
+        auto motorMap_it = motorMap_.find(ids[i]);
+
+        if (servoMap_it != servoMap_.end()) {
+            // dxl_comm_result = packetHandler_->write1ByteTxRx(
+            //     portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+            servoMap_it->second.torqueEnable_ = toggle;
+        } else if (motorMap_it != motorMap_.end()) {
+            // dxl_comm_result = packetHandler_->write1ByteTxRx(
+            //     portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+            motorMap_it->second.torqueEnable_ = toggle;
+        }
+        // dxl_comm_result = packetHandler_->write1ByteTxRx(
+        //     portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+
+        //     dxl_comm_result = packetHandler_->write1ByteTxRx(
+        //         portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+        //     if (dxl_comm_result != COMM_SUCCESS) {
+        //         RCLCPP_ERROR(this->get_logger(), "ID: 0x%2X Comm error: %s",
+        //         ids[i],
+        //                      packetHandler_->getTxRxResult(dxl_comm_result));
+        //     } else if (dxl_error != 0) {
+        //         RCLCPP_ERROR(this->get_logger(), "ID: 0x%2X Comm error %s",
+        //         ids[i],
+        //                      packetHandler_->getRxPacketError(dxl_error));
+        //     } else {
+        //         RCLCPP_INFO(this->get_logger(), "Torque on for ID %2x",
+        //         ids[i]);
+        //     }
+    }
+}
+
 void DynamixelDriver::changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map) {
+    std::scoped_lock lock(comms_mutex_);
+
+    // make sure the torque is off
+    toggleTorque(allIds_, false);
+    
     // iterate over the map
     for ( auto const pair: op_mode_map) {
         // 1. validate that the id is present
@@ -276,4 +322,6 @@ void DynamixelDriver::changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map
         // dxl_comm_result = packetHandler_->write1ByteTxRx(
         //     portHandler_, pair.first, OP_MODE_ADDR, dxl_error);
     }
+    toggleTorque(allIds_, true);
 }
+

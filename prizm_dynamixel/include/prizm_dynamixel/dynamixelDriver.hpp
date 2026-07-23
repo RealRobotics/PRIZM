@@ -45,7 +45,9 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void InitDynamixelComms();
     void InitGoalSubscribers();
     void enableTorque(std::vector<uint8_t> ids);
+    void toggleTorque(std::vector<uint8_t> ids, bool toggle);
     void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
+    void setRPM(float speed);
     // uint8_t getMotorId() override;
     // uint32_t getOpMode() override;
     // uint32_t getTemp() override;
@@ -63,8 +65,8 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     dynamixelMap servoMap_, motorMap_;
 
-
     std::vector<int64_t> motorIdsINT_, servoIdsINT_;
+    std::vector<uint8_t> allIds_;
     DynamixelDriver();
     DynamixelDriver(std::string& nodeName, rclcpp::NodeOptions& options);
 
@@ -81,6 +83,13 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
    private:
     std::string nodeName_;
 
+    /**
+     * @brief ensures that only one thread ever uses the comms channlel.
+     * If you are writing a function that uses it, make sure to call
+     * ```std::scoped_lock(comms_mutex)```. No need to release it.
+     */
+    std::mutex comms_mutex_;
+
     void servoPosGoalCB_(const DynaPosArr& msg);
     void motorVelGoalCB_(const DynaVelArr& msg);
 
@@ -92,5 +101,4 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     void readParams(std::map<uint8_t, uint8_t*> val_map,
                     uint16_t instruction_code, uint16_t instruction_len);
-
 };

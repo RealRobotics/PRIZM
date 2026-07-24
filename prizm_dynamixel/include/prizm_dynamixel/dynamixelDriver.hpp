@@ -50,6 +50,7 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void InitGoalSubscribers();
     void enableTorque(std::vector<uint8_t> ids);
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     /**
      * @brief Toggles the output torque on or off based on input.
@@ -79,6 +80,11 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
     void setRPM(float speed);
 >>>>>>> refs/remotes/origin/main
+=======
+    void toggleTorque(std::vector<uint8_t> ids, bool toggle);
+    void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
+    void setRPM(float speed);
+>>>>>>> refs/remotes/origin/main
     // uint8_t getMotorId() override;
     // uint32_t getOpMode() override;
     // uint32_t getTemp() override;
@@ -98,7 +104,11 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     std::vector<int64_t> motorIdsINT_, servoIdsINT_;
 <<<<<<< HEAD
+<<<<<<< HEAD
     std::vector<uint8_t> allIds_, motorIds_, servoIds_;
+=======
+    std::vector<uint8_t> allIds_;
+>>>>>>> refs/remotes/origin/main
 =======
     std::vector<uint8_t> allIds_;
 >>>>>>> refs/remotes/origin/main
@@ -120,7 +130,10 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     std::string nodeName_;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> refs/remotes/origin/main
     /**
      * @brief ensures that only one thread ever uses the comms channlel.
      * If you are writing a function that uses it, make sure to call

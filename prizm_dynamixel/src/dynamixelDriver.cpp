@@ -285,6 +285,42 @@ void DynamixelDriver::enableTorque(std::vector<uint8_t> ids) {
     }
 }
 
+void DynamixelDriver::toggleTorque(std::vector<uint8_t> ids, bool toggle) {
+    std::scoped_lock lock(comms_mutex_);
+
+    for (size_t i = 0; i < ids.size(); i++) {
+        auto servoMap_it = servoMap_.find(ids[i]);
+        auto motorMap_it = motorMap_.find(ids[i]);
+
+        if (servoMap_it != servoMap_.end()) {
+            // dxl_comm_result = packetHandler_->write1ByteTxRx(
+            //     portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+            servoMap_it->second.torqueEnable_ = toggle;
+        } else if (motorMap_it != motorMap_.end()) {
+            // dxl_comm_result = packetHandler_->write1ByteTxRx(
+            //     portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+            motorMap_it->second.torqueEnable_ = toggle;
+        }
+        // dxl_comm_result = packetHandler_->write1ByteTxRx(
+        //     portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+
+        //     dxl_comm_result = packetHandler_->write1ByteTxRx(
+        //         portHandler_, ids[i], TORQUE_ENABLE_ADDR, dxl_error);
+        //     if (dxl_comm_result != COMM_SUCCESS) {
+        //         RCLCPP_ERROR(this->get_logger(), "ID: 0x%2X Comm error: %s",
+        //         ids[i],
+        //                      packetHandler_->getTxRxResult(dxl_comm_result));
+        //     } else if (dxl_error != 0) {
+        //         RCLCPP_ERROR(this->get_logger(), "ID: 0x%2X Comm error %s",
+        //         ids[i],
+        //                      packetHandler_->getRxPacketError(dxl_error));
+        //     } else {
+        //         RCLCPP_INFO(this->get_logger(), "Torque on for ID %2x",
+        //         ids[i]);
+        //     }
+    }
+}
+
 void DynamixelDriver::toggle_torque(std::vector<uint8_t> ids, bool toggle) {
     // std::scoped_lock lock(comms_lock_);
 

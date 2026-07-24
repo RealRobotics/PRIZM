@@ -39,6 +39,8 @@ DynamixelDriver::DynamixelDriver(std::string& nodeName,
         this->get_parameter(paramNamespace_ + ".servo_ids").as_integer_array();
     motorIdsINT_ =
         this->get_parameter(paramNamespace_ + ".motor_ids").as_integer_array();
+    std::copy(servoIdsINT_.begin(), servoIdsINT_.end(), allIds_.begin());
+    allIds_.insert(allIds_.end(), motorIdsINT_.begin(), motorIdsINT_.end());
 
     servoIds_.insert(servoIds_.end(), servoIdsINT_.begin(), servoIdsINT_.end());
     motorIds_.insert(motorIds_.end(), motorIdsINT_.begin(), motorIdsINT_.end());

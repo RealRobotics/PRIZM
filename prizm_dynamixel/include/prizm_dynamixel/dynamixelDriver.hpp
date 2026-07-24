@@ -15,11 +15,13 @@
 #define CURR_VOLT_LEN 2
 #define OP_MODE_LEN 1
 #define DRIVE_MODE_LEN 1
+#define PROF_VEL_LEN 4
 
 // parameters address
+#define PROF_VEL_ADDR 112
 #define GOAL_POS_ADDR 116
 #define GOAL_VEL_ADDR 104
-#define GOAL_ACCEL_ADDR 108
+#define PROF_ACCEL_ADDR 108
 #define TORQUE_ENABLE_ADDR 64
 #define CURR_TEMP_ADDR 146
 #define CURR_VOLT_ADDR 144
@@ -38,6 +40,8 @@ typedef prizm_interfaces::msg::DynamixelVel DynaVel;
 typedef prizm_interfaces::msg::DynamixelPosArr DynaPosArr;
 typedef prizm_interfaces::msg::DynamixelVelArr DynaVelArr;
 
+typedef std::map<uint8_t, uint8_t*> BulkParamMap;
+
 class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
    public:
     // void InitServos();
@@ -45,7 +49,30 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void InitDynamixelComms();
     void InitGoalSubscribers();
     void enableTorque(std::vector<uint8_t> ids);
+
+    /**
+     * @brief Toggles the output torque on or off based on input.
+     * This function does not close the mutex.
+     *
+     * @param ids list of motor IDs to toggle.
+     * @param toggle true for on, false for off.
+     */
+    void toggle_torque(std::vector<uint8_t> ids, bool toggle);
+
+    /**
+     * @brief Changes operating mode based on inputted map, see
+     * ```OperatingModes``` enum for options. This function calls the mutex for
+     * locking, so do not call it when it is already locked.
+     *
+     * @param op_mode_map K: ID of the motor, V: Operating Mode code. See
+     * ```OperatingModes```
+     */
     void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
+
+    void setVelocity(std::map<uint8_t, float> vel_map);
+
+    void servoPosGoalCB_(const DynaPosArr& msg);
+    void motorVelGoalCB_(const DynaVelArr& msg);
     // uint8_t getMotorId() override;
     // uint32_t getOpMode() override;
     // uint32_t getTemp() override;
@@ -63,8 +90,8 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     dynamixelMap servoMap_, motorMap_;
 
-
     std::vector<int64_t> motorIdsINT_, servoIdsINT_;
+    std::vector<uint8_t> allIds_, motorIds_, servoIds_;
     DynamixelDriver();
     DynamixelDriver(std::string& nodeName, rclcpp::NodeOptions& options);
 
@@ -77,12 +104,10 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
     int dxl_comm_result = COMM_TX_FAIL;
     uint8_t dxl_error = 0;
+    std::mutex comms_lock_;
 
    private:
     std::string nodeName_;
-
-    void servoPosGoalCB_(const DynaPosArr& msg);
-    void motorVelGoalCB_(const DynaVelArr& msg);
 
     void updateServoGoals();
     void updateMotorGoals();
@@ -92,5 +117,4 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     void readParams(std::map<uint8_t, uint8_t*> val_map,
                     uint16_t instruction_code, uint16_t instruction_len);
-
 };

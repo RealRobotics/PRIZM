@@ -122,6 +122,7 @@ TEST_F(TestMotorDriver, MotorVelCallback) {
     ASSERT_EQ(node_->motorMap_[p3.id].goalVel_, p3.velocity);
 }
 
+
 TEST_F(TestMotorDriver, TorqueEnableTest) {
     std::vector<uint8_t> ids = {0x00, 0x02, 0x09};
 

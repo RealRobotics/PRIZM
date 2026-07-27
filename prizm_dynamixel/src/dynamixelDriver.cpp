@@ -39,6 +39,15 @@ DynamixelDriver::DynamixelDriver(std::string& nodeName,
     motorIdsINT_ =
         this->get_parameter(paramNamespace_ + ".motor_ids").as_integer_array();
 
+    auto profile_vals_map = std::map<std::string, float>{
+        {"profile_velocity", 0}, {"profile_acceleration", 0}};
+    this->declare_parameters(paramNamespace_, profile_vals_map);
+    profile_velocity =
+        this->get_parameter(paramNamespace_ + ".profile_velocity").as_double();
+    profile_acceleration =
+        this->get_parameter(paramNamespace_ + ".profile_acceleration")
+            .as_double();
+
     servoIds_.insert(servoIds_.end(), servoIdsINT_.begin(), servoIdsINT_.end());
     motorIds_.insert(motorIds_.end(), motorIdsINT_.begin(), motorIdsINT_.end());
 
@@ -52,6 +61,7 @@ DynamixelDriver::DynamixelDriver(std::string& nodeName,
 
 void DynamixelDriver::InitMotors() {
     // check that we have as many IDs as we have motors
+    auto op_mode_map = std::map<uint8_t, uint8_t>();
 
     try {
         if (numServos_ != (int)servoIdsINT_.size()) {
@@ -66,6 +76,8 @@ void DynamixelDriver::InitMotors() {
                 OperatingModes::EXTENDED_POSITION_CONTROL;
             for (int i = 0; i < numServos_; i++) {
                 servoMap_.insert({{servoIdsINT_[i], servo_default}});
+                op_mode_map.insert(
+                    {servoIdsINT_[i], servo_default.operatingMode_});
             }
         }
     } catch (const std::exception& e) {
@@ -84,13 +96,34 @@ void DynamixelDriver::InitMotors() {
             motor_default.operatingMode_ = OperatingModes::VELOCITY_CONTROL;
             for (int i = 0; i < numMotors_; i++) {
                 motorMap_.insert({motorIdsINT_[i], motor_default});
+                op_mode_map.insert(
+                    {motorIdsINT_[i], motor_default.operatingMode_});
             }
         }
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
 
+    changeOperatingMode(op_mode_map);
+
     // Enable Torque for all motors
+    // enableTorque(allIds_);
+
+    // Set the profile velocity for the servos
+    auto profile_vel_map = std::map<uint8_t, float>();
+    for (auto& pair : servoMap_) {
+        profile_vel_map.insert({pair.first, profile_velocity});
+        pair.second.profVel_ = profile_velocity;
+    }
+    setProfileVelocity(profile_vel_map);
+
+    // Set the profile acceleration for the motors
+    auto profile_accel_map = std::map<uint8_t, float>();
+    for (auto& pair : motorMap_) {
+        profile_accel_map.insert({pair.first, profile_acceleration});
+        pair.second.profAccel_ = profile_acceleration;
+    }
+    setProfileAccel(profile_accel_map);
 }
 
 void DynamixelDriver::InitDynamixelComms() {
@@ -129,7 +162,7 @@ void DynamixelDriver::servoPosGoalCB_(const DynaPosArr& msg) {
     std::map<uint8_t, float> goal_map;
 
     int num_incoming_pos = msg.pos_array.size();
-    
+
     for (int i = 0; i < num_incoming_pos; i++) {
         try {
             auto find_it = servoMap_.find(msg.pos_array[i].id);
@@ -148,29 +181,34 @@ void DynamixelDriver::servoPosGoalCB_(const DynaPosArr& msg) {
             std::cerr << e.what() << '\n';
         }
     }
-    if(!debug) setServoPos(goal_map);
+    if (!debug) setServoPos(goal_map);
 }
 
 void DynamixelDriver::motorVelGoalCB_(const DynaVelArr& msg) {
-    // 1. check if the number of servo positions received is the same as the
-    // number of servos loaded from config
-    std::map<uint8_t, float> vel_map;
+    std::map<uint8_t, float> prof_vel_map, goal_vel_map;
 
     int num_incoming_vel = msg.vel_array.size();
     for (int i = 0; i < num_incoming_vel; i++) {
         try {
-            auto find_it = motorMap_.find(msg.vel_array[i].id);
-            if (find_it == motorMap_.end()) {
-                RCLCPP_ERROR(this->get_logger(),
-                             "Incoming message requests motor id 0x%02x, which "
-                             "is not in the list of valid ids",
-                             msg.vel_array[i].id);
-                throw std::runtime_error("MotorIDMismatch");
-            } else {
-                find_it->second.goalVel_ = msg.vel_array[i].velocity;
-                vel_map.insert({find_it->first, find_it->second.goalVel_});
+            auto motor_find_it = motorMap_.find(msg.vel_array[i].id);
+            auto servo_find_it = servoMap_.find(msg.vel_array[i].id);
+            if (motor_find_it != motorMap_.end()) {
+                motor_find_it->second.goalVel_ = msg.vel_array[i].velocity;
+                goal_vel_map.insert(
+                    {motor_find_it->first, motor_find_it->second.goalVel_});
             }
-            setVelocity(vel_map);
+            if (servo_find_it != servoMap_.end()) {
+                servo_find_it->second.profVel_ = msg.vel_array[i].velocity;
+                prof_vel_map.insert(
+                    {servo_find_it->first, servo_find_it->second.profVel_});
+            }
+            if (!goal_vel_map.empty()) setGoalVelocity(goal_vel_map);
+            if (!prof_vel_map.empty()) setProfileVelocity(prof_vel_map);
+            // } else {
+            //     find_it->second.goalVel_ = msg.vel_array[i].velocity;
+            //     vel_map.insert({find_it->first, find_it->second.goalVel_});
+            // }
+            // setGoalVelocity(vel_map);
 
         } catch (const std::exception& e) {
             std::cerr << e.what() << '\n';
@@ -178,19 +216,29 @@ void DynamixelDriver::motorVelGoalCB_(const DynaVelArr& msg) {
     }
 }
 
-void DynamixelDriver::writeParams(std::map<uint8_t, uint8_t*> val_map,
-                                  uint16_t insturction_code,
-                                  uint16_t instruction_len) {
+int DynamixelDriver::writeParams(std::map<uint8_t, uint8_t*> val_map,
+                                 uint16_t insturction_code,
+                                 uint16_t instruction_len) {
     // std::scoped_lock lock(comms_lock_);
     groupBulkWrite_->clearParam();
     for (auto const& pair : val_map) {
         groupBulkWrite_->addParam(pair.first, insturction_code, instruction_len,
                                   pair.second);
     }
-    groupBulkWrite_->txPacket();
+    dxl_comm_result = groupBulkWrite_->txPacket();
     groupBulkWrite_->clearParam();
+    switch (dxl_comm_result) {
+        case COMM_SUCCESS:
+            return 1;
+            break;
+
+        default:
+            return -1;
+            break;
+    }
     // @todo this function should return -1 if there was a problem writing
-    // so we can use the result to check if we should update the current values in the maps
+    // so we can use the result to check if we should update the current values
+    // in the maps
 }
 
 // void DynamixelDriver::readParams(std::map<uint8_t, uint8_t*> val_map,
@@ -310,10 +358,81 @@ void DynamixelDriver::changeOperatingMode(
     toggle_torque(allIds_, true);
 }
 
-void DynamixelDriver::setVelocity(std::map<uint8_t, float> vel_map) {
+void DynamixelDriver::setProfileVelocity(std::map<uint8_t, float> vel_map) {
     // toggle_torque(motorIds_, false);
     BulkParamMap map;
     uint8_t vel_arr[4];
+    int write_result = 1;
+    for (auto const pair : vel_map) {
+        // 1. update the cached values
+        auto id = pair.first;
+        auto vel = pair.second;
+        // auto accel = pair.second[1];
+
+        if (servoMap_.find(id) != servoMap_.end()) {
+            servoMap_[id].goalVel_ = vel;
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Servo was not in address list");
+            continue;
+        }
+        // 2. build the instruction map for write params
+        rpmToHex(vel, vel_arr);
+        map.insert({id, vel_arr});
+    }
+    if (!debug) write_result = (map, PROF_VEL_ADDR, PROF_VEL_LEN);
+
+    if (write_result == 1) {
+        for (auto const pair : vel_map) {
+            auto id = pair.first;
+            auto pos = pair.second;
+            if (servoMap_.find(id) != servoMap_.end()) {
+                servoMap_[id].profVel_ = pos;
+            }
+        }
+    }
+    // toggle_torque(motorIds_, true);
+}
+
+void DynamixelDriver::setProfileAccel(std::map<uint8_t, float> accel_map) {
+    // toggle_torque(motorIds_, false);
+    BulkParamMap map;
+    uint8_t accel_arr[4];
+    int write_result = 1;
+    for (auto const pair : accel_map) {
+        // 1. update the cached values
+        auto id = pair.first;
+        auto accel = pair.second;
+        // auto accel = pair.second[1];
+
+        if (motorMap_.find(id) != motorMap_.end()) {
+            motorMap_[id].profAccel_ = accel;
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Servo was not in address list");
+            continue;
+        }
+        // 2. build the instruction map for write params
+        accelToHex(accel, accel_arr);
+        map.insert({id, accel_arr});
+    }
+    if (!debug) write_result = (map, PROF_VEL_ADDR, PROF_VEL_LEN);
+
+    if (write_result == 1) {
+        for (auto const pair : accel_map) {
+            auto id = pair.first;
+            auto pos = pair.second;
+            if (motorMap_.find(id) != motorMap_.end()) {
+                motorMap_[id].profAccel_ = pos;
+            }
+        }
+    }
+    // toggle_torque(motorIds_, true);
+}
+
+void DynamixelDriver::setGoalVelocity(std::map<uint8_t, float> vel_map) {
+    // toggle_torque(motorIds_, false);
+    BulkParamMap map;
+    uint8_t vel_arr[4];
+    int write_result = 1;
 
     for (auto const pair : vel_map) {
         // 1. update the cached values
@@ -323,20 +442,33 @@ void DynamixelDriver::setVelocity(std::map<uint8_t, float> vel_map) {
 
         if (motorMap_.find(id) != motorMap_.end()) {
             motorMap_[id].goalVel_ = vel;
-            // motorMap_[id].goalAccel_ = accel;
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Servo was not in address list");
+            continue;
         }
         // 2. build the instruction map for write params
         rpmToHex(vel, vel_arr);
         map.insert({id, vel_arr});
     }
-    if (!debug) writeParams(map, PROF_VEL_ADDR, PROF_VEL_LEN);
-    // toggle_torque(motorIds_, true);
+    if (!debug) write_result = writeParams(map, GOAL_VEL_ADDR, GOAL_VEL_LEN);
+
+    if (write_result == 1) {
+        for (auto const pair : vel_map) {
+            auto id = pair.first;
+            auto vel = pair.second;
+
+            if (motorMap_.find(id) != motorMap_.end()) {
+                motorMap_[id].currentVel_ = vel;
+            }
+        }
+    }
 }
 
 void DynamixelDriver::setServoPos(std::map<uint8_t, float> pos_map) {
     // toggle_torque(servoIds_, false);
     BulkParamMap map;
     uint8_t pos_arr[4];
+    int write_result = 1;
 
     for (auto const pair : pos_map) {
         auto id = pair.first;
@@ -348,5 +480,15 @@ void DynamixelDriver::setServoPos(std::map<uint8_t, float> pos_map) {
         degToPos(pos, pos_arr);
         map.insert({id, pos_arr});
     }
-    if (!debug) writeParams(map, GOAL_POS_ADDR, GOAL_POS_LEN);
+    if (!debug) write_result = writeParams(map, GOAL_POS_ADDR, GOAL_POS_LEN);
+
+    if (write_result == 1) {
+        for (auto const pair : pos_map) {
+            auto id = pair.first;
+            auto pos = pair.second;
+            if (servoMap_.find(id) != servoMap_.end()) {
+                servoMap_[id].currentPos_ = pos;
+            }
+        }
+    }
 }

@@ -9,6 +9,8 @@
 #define SERVO_FULL_ROT 4096
 #define MOTOR_MAX_RPM 73.24
 #define MOTOR_MAX_PVE 320
+#define MOTOR_MAX_ACCEL 7031044.56
+#define MOTOR_MAX_INT 32767
 // #define MOTOR_MAX_NVE 0xFFFFFEC0
 
 enum OperatingModes {
@@ -25,7 +27,7 @@ struct dynamixelData {
     // uint8_t motorId_ = 0x00;
 
     uint32_t currentPos_ = 0x00;
-    uint32_t currentVel_ = 0x00;
+    float currentVel_ = 0x00;
     uint32_t currentAccel_ = 0x00;
     uint8_t errorStatus_ = 0x00;
     uint32_t currentVoltage = 0x00;
@@ -36,9 +38,8 @@ struct dynamixelData {
     float goalPos_ = 0.f;
     float goalVel_ = 0.f;
     float goalAccel_ = 0.f;
-    float convPos_ = 0.f;
-    float convVel_ = 0.f;
-    float convAccel_ = 0.f;
+    float profVel_ = 0.f;
+    float profAccel_ = 0.f;
 
     std::string motorModel_;
 };
@@ -134,6 +135,17 @@ class DynamixelMotor {
         goal_vel[1] = DXL_HIBYTE(DXL_LOWORD(vel_hex));
         goal_vel[2] = DXL_LOBYTE(DXL_HIWORD(vel_hex));
         goal_vel[3] = DXL_HIBYTE(DXL_HIWORD(vel_hex));
+    }
+
+    void accelToHex(float accel, uint8_t accel_[4]){
+        uint32_t accel_hex;
+        accel_hex = static_cast<uint32_t>(
+            std::round(accel / MOTOR_MAX_ACCEL * MOTOR_MAX_INT)
+        );
+        accel_[0] = DXL_LOBYTE(DXL_LOWORD(accel_hex));
+        accel_[1] = DXL_HIBYTE(DXL_LOWORD(accel_hex));
+        accel_[2] = DXL_LOBYTE(DXL_HIWORD(accel_hex));
+        accel_[3] = DXL_HIBYTE(DXL_HIWORD(accel_hex));
     }
 
    private:

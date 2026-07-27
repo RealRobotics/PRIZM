@@ -129,9 +129,7 @@ TEST_F(TestMotorDriver, TorqueEnableTest) {
     node_->enableTorque(ids);
     ASSERT_EQ(node_->servoMap_[0x00].torqueEnable_, true);
     ASSERT_EQ(node_->servoMap_[0x02].torqueEnable_, true);
-    ASSERT_EQ(node_->servoMap_[0x01].torqueEnable_, false);
     ASSERT_EQ(node_->motorMap_[0x09].torqueEnable_, true);
-    ASSERT_EQ(node_->motorMap_[0x04].torqueEnable_, false);
 }
 
 TEST_F(TestMotorDriver, ChangeOperatingModeTest) {
@@ -156,7 +154,7 @@ TEST_F(TestMotorDriver, SetSpeed){
         {0x06, 20.14},
         {0x09, -11.44}
     };
-    node_->setVelocity(vel_input);
+    node_->setGoalVelocity(vel_input);
     auto vel_1 = node_->motorMap_[id1].goalVel_;
     auto vel_2 = node_->motorMap_[id2].goalVel_;
     ASSERT_NEAR(vel_1, 20.14, 1e-1);

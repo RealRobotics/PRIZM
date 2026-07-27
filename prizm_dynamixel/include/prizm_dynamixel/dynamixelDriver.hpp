@@ -35,7 +35,7 @@
 #define GOAL_VEL_ADDR 104
 #define PROF_ACCEL_ADDR 108
 #define TORQUE_ENABLE_ADDR 64
-#define CURR_TEMP_ADDR 146 
+#define CURR_TEMP_ADDR 146
 #define CURR_VOLT_ADDR 144
 #define OP_MODE_ADDR 11
 #define DRIVE_MODE_ADDR 10
@@ -73,15 +73,17 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     /**
      * @brief Changes operating mode based on inputted map, see
-     * ```OperatingModes``` enum for options. This function calls the mutex for
-     * locking, so do not call it when it is already locked.
+     * ```OperatingModes``` enum for options. It enables torque at the end, so
+     * no need to enable after calling it.
      *
      * @param op_mode_map K: ID of the motor, V: Operating Mode code. See
      * ```OperatingModes```
      */
     void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
 
-    void setVelocity(std::map<uint8_t, float> vel_map);
+    void setGoalVelocity(std::map<uint8_t, float> vel_map);
+    void setProfileVelocity(std::map<uint8_t, float> vel_map);
+    void setProfileAccel(std::map<uint8_t, float> accel_map);
     void setServoPos(std::map<uint8_t, float> pos_map);
 
     void servoPosGoalCB_(const DynaPosArr& msg);
@@ -117,6 +119,8 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
     int dxl_comm_result = COMM_TX_FAIL;
     uint8_t dxl_error = 0;
+    float profile_velocity = 0, profile_acceleration = 0;
+
    private:
     bool debug = true;
     std::string nodeName_;
@@ -141,9 +145,10 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
      * sheet
      * @param instruction_len Length of the instruction from the reference
      * sheet.
+     * @return 1 for succcessful comm, -1 for unsuccessful
      */
-    void writeParams(std::map<uint8_t, uint8_t*> val_map,
-                     uint16_t insturction_code, uint16_t instruction_len);
+    int writeParams(std::map<uint8_t, uint8_t*> val_map,
+                    uint16_t insturction_code, uint16_t instruction_len);
 
     void readParams(std::map<uint8_t, uint8_t*> val_map,
                     uint16_t instruction_code, uint16_t instruction_len);

@@ -13,5 +13,8 @@ motor_driver_test:
       - 0x09
       - 0x04
 
+    motor_driver.profile_velocity: 0.0
+
+    motor_driver.profile_acceleration: 0.0
     # servo_min: 0
     # servo_max: 360

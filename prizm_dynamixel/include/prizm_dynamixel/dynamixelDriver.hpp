@@ -1,3 +1,15 @@
+/**
+ * @file dynamixelDriver.hpp
+ * @author Vittorio Francescon (vittorio.francescon@gmail.com)
+ * @brief Driver class, implemented for XC-330-T288-T Currently. Spins up some
+ * ros nodes for remote control
+ * @version 0.1
+ * @date 27-07-2026
+ *
+ * @copyright Copyright (c) 2026
+ *
+ */
+
 #include <prizm_interfaces/msg/dynamixel_pos.hpp>
 #include <prizm_interfaces/msg/dynamixel_pos_arr.hpp>
 #include <prizm_interfaces/msg/dynamixel_vel.hpp>
@@ -23,7 +35,7 @@
 #define GOAL_VEL_ADDR 104
 #define PROF_ACCEL_ADDR 108
 #define TORQUE_ENABLE_ADDR 64
-#define CURR_TEMP_ADDR 146
+#define CURR_TEMP_ADDR 146 
 #define CURR_VOLT_ADDR 144
 #define OP_MODE_ADDR 11
 #define DRIVE_MODE_ADDR 10
@@ -49,8 +61,6 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void InitDynamixelComms();
     void InitGoalSubscribers();
     void enableTorque(std::vector<uint8_t> ids);
-<<<<<<< HEAD
-<<<<<<< HEAD
 
     /**
      * @brief Toggles the output torque on or off based on input.
@@ -72,20 +82,11 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
 
     void setVelocity(std::map<uint8_t, float> vel_map);
+    void setServoPos(std::map<uint8_t, float> pos_map);
 
     void servoPosGoalCB_(const DynaPosArr& msg);
     void motorVelGoalCB_(const DynaVelArr& msg);
-=======
-    void toggleTorque(std::vector<uint8_t> ids, bool toggle);
-    void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
-    void setRPM(float speed);
->>>>>>> refs/remotes/origin/main
-=======
-    void toggleTorque(std::vector<uint8_t> ids, bool toggle);
-    void toggleTorque(std::vector<uint8_t> ids, bool toggle);
-    void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
-    void setRPM(float speed);
->>>>>>> refs/remotes/origin/main
+
     // uint8_t getMotorId() override;
     // uint32_t getOpMode() override;
     // uint32_t getTemp() override;
@@ -98,21 +99,12 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     std::string paramNamespace_ = "motor_driver";
     int numServos_, servoMin_, servoMax_;
     int numMotors_, speedMin_, speedMax_;
-    // std::vector<dynamixelData> servoList_;
-    // std::vector<dynamixelData> motorList_;
 
     dynamixelMap servoMap_, motorMap_;
 
     std::vector<int64_t> motorIdsINT_, servoIdsINT_;
-<<<<<<< HEAD
-<<<<<<< HEAD
+
     std::vector<uint8_t> allIds_, motorIds_, servoIds_;
-=======
-    std::vector<uint8_t> allIds_;
->>>>>>> refs/remotes/origin/main
-=======
-    std::vector<uint8_t> allIds_;
->>>>>>> refs/remotes/origin/main
     DynamixelDriver();
     DynamixelDriver(std::string& nodeName, rclcpp::NodeOptions& options);
 
@@ -125,9 +117,8 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
     int dxl_comm_result = COMM_TX_FAIL;
     uint8_t dxl_error = 0;
-    std::mutex comms_lock_;
-
    private:
+    bool debug = true;
     std::string nodeName_;
 
     /**
@@ -137,32 +128,20 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
      */
     std::mutex comms_mutex_;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> refs/remotes/origin/main
     /**
-     * @brief ensures that only one thread ever uses the comms channlel.
-     * If you are writing a function that uses it, make sure to call
-     * ```std::scoped_lock(comms_mutex)```. No need to release it.
+     * @brief Uses ```groupBulkWrite_``` to write multiple instructions in one
+     * go. This function does not have any blocking builtin. The Writing
+     * functions are expected to implement their own to ensure no data races
+     * occur.
+     *
+     * @param val_map K: motor ID to write for V: uint32_t broken into a list of
+     * uint8_t. Use the conversion functions in ```DynamixelMotor``` to handle
+     * this.
+     * @param insturction_code Instruction address from the motor reference
+     * sheet
+     * @param instruction_len Length of the instruction from the reference
+     * sheet.
      */
-    std::mutex comms_mutex_;
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> refs/remotes/origin/main
-    std::mutex comms_mutex_;
-
-    void servoPosGoalCB_(const DynaPosArr& msg);
-    void motorVelGoalCB_(const DynaVelArr& msg);
-
->>>>>>> refs/remotes/origin/main
-    void updateServoGoals();
-    void updateMotorGoals();
-
     void writeParams(std::map<uint8_t, uint8_t*> val_map,
                      uint16_t insturction_code, uint16_t instruction_len);
 

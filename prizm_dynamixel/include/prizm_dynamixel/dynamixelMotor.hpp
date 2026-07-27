@@ -11,12 +11,11 @@
 #define MOTOR_MAX_PVE 320
 // #define MOTOR_MAX_NVE 0xFFFFFEC0
 
-enum OperatingModes{
+enum OperatingModes {
     VELOCITY_CONTROL = 1,
     POSITION_CONTROL = 3,
     EXTENDED_POSITION_CONTROL = 4,
 };
-
 
 /**
  * @brief dynamixel data class. use this to hold all your data in a convenient
@@ -34,16 +33,15 @@ struct dynamixelData {
     bool torqueEnable_ = false;
     uint8_t operatingMode_ = POSITION_CONTROL;
     uint8_t driveMode_ = 0x00;
-    uint32_t goalPos_ = 0x00;
-    uint32_t goalVel_ = 0x00;
-    uint32_t goalAccel_ = 0x00;
+    float goalPos_ = 0.f;
+    float goalVel_ = 0.f;
+    float goalAccel_ = 0.f;
     float convPos_ = 0.f;
     float convVel_ = 0.f;
     float convAccel_ = 0.f;
 
     std::string motorModel_;
 };
-
 
 typedef std::map<uint8_t, dynamixelData> dynamixelMap;
 
@@ -103,13 +101,18 @@ class DynamixelMotor {
     // }
 
     void degToPos(float angle_deg, uint8_t goal_pos[4]) {
-        int target_pos =
-            static_cast<uint16_t>(angle_deg / 360 * SERVO_FULL_ROT);
+        // uint32_t pos_hex =
+        uint32_t pos_hex = 0;
+        if(angle_deg < 0) {
+            pos_hex = ~static_cast<uint32_t>(std::round(abs(angle_deg / 360 * SERVO_FULL_ROT)))+1;
+        } else {
+            pos_hex = static_cast<uint32_t>(std::round(angle_deg/360*SERVO_FULL_ROT));
+        }
         // uint8_t goal_pos[4];
-        goal_pos[0] = DXL_LOBYTE(DXL_LOWORD(target_pos));
-        goal_pos[1] = DXL_HIBYTE(DXL_LOWORD(target_pos));
-        goal_pos[2] = DXL_LOBYTE(DXL_HIWORD(target_pos));
-        goal_pos[3] = DXL_HIBYTE(DXL_HIWORD(target_pos));
+        goal_pos[0] = DXL_LOBYTE(DXL_LOWORD(pos_hex));
+        goal_pos[1] = DXL_HIBYTE(DXL_LOWORD(pos_hex));
+        goal_pos[2] = DXL_LOBYTE(DXL_HIWORD(pos_hex));
+        goal_pos[3] = DXL_HIBYTE(DXL_HIWORD(pos_hex));
     }
 
     float posToDeg(uint16_t pos) {
@@ -119,20 +122,19 @@ class DynamixelMotor {
     void rpmToHex(float vel, uint8_t goal_vel[4]) {
         uint32_t vel_hex;
         if (vel < 0) {
-            vel_hex =
-                ~static_cast<uint32_t>(vel / MOTOR_MAX_RPM * MOTOR_MAX_PVE) + 1;
+            vel_hex = ~static_cast<uint32_t>(
+                std::round(abs(vel / MOTOR_MAX_RPM * MOTOR_MAX_PVE))) + 1;
 
         } else {
             // static_cast<uint32_t>();
-            vel_hex =
-                static_cast<uint32_t>(vel / MOTOR_MAX_RPM * MOTOR_MAX_PVE);
+            vel_hex = static_cast<uint32_t>(
+                std::round(vel / MOTOR_MAX_RPM * MOTOR_MAX_PVE));
         }
         goal_vel[0] = DXL_LOBYTE(DXL_LOWORD(vel_hex));
         goal_vel[1] = DXL_HIBYTE(DXL_LOWORD(vel_hex));
         goal_vel[2] = DXL_LOBYTE(DXL_HIWORD(vel_hex));
         goal_vel[3] = DXL_HIBYTE(DXL_HIWORD(vel_hex));
     }
-
 
    private:
 };

@@ -149,6 +149,108 @@ TEST_F(TestMotorDriver, ChangeOperatingModeTest) {
               OperatingModes::VELOCITY_CONTROL);
 }
 
+TEST_F(TestMotorDriver, SetSpeed){
+    uint8_t id1 = 0x06;
+    uint8_t id2 = 0x09;
+    std::map<uint8_t, float> vel_input = {
+        {0x06, 20.14},
+        {0x09, -11.44}
+    };
+    node_->setVelocity(vel_input);
+    auto vel_1 = node_->motorMap_[id1].goalVel_;
+    auto vel_2 = node_->motorMap_[id2].goalVel_;
+    ASSERT_NEAR(vel_1, 20.14, 1e-1);
+    ASSERT_NEAR(vel_2, -11.44, 1e-1);
+
+    // little extra, check the conversions
+    uint8_t hex[4];
+    node_->rpmToHex(20.14, hex);
+    uint8_t ans[4];
+    ans[3] = 0x00;
+    ans[2] = 0x00;
+    ans[1] = 0x00;
+    ans[0] = 0x58;
+
+    EXPECT_EQ(ans[0], hex[0]);
+    EXPECT_EQ(ans[1], hex[1]);
+    EXPECT_EQ(ans[2], hex[2]);
+    EXPECT_EQ(ans[3], hex[3]);
+
+    node_->rpmToHex(-11.44, hex);
+    ans[3] = 0xFF;
+    ans[2] = 0xFF;
+    ans[1] = 0xFF;
+    ans[0] = 0xCE;
+    EXPECT_EQ(ans[0], hex[0]);
+    EXPECT_EQ(ans[1], hex[1]);
+    EXPECT_EQ(ans[2], hex[2]);
+    EXPECT_EQ(ans[3], hex[3]);
+}
+
+TEST_F(TestMotorDriver, SetServoPos){
+    uint8_t id1 = 0x00;
+    uint8_t id2 = 0x01;
+    uint8_t id3 = 0x02;
+    float goal1 = -43.95, goal2 = 105.47, goal3 = 439.45;
+    std::map<uint8_t, float> pos_input = {
+        {id1, goal1},
+        {id2, goal2},
+        {id3, goal3}
+    };
+    node_->setServoPos(pos_input);
+    auto pos1 = node_->servoMap_[id1].goalPos_;
+    auto pos2 = node_->servoMap_[id2].goalPos_;
+    auto pos3 = node_->servoMap_[id3].goalPos_;
+    ASSERT_NEAR(pos1, goal1, 1e-1);
+    ASSERT_NEAR(pos2, goal2, 1e-1);
+    ASSERT_NEAR(pos3, goal3, 1e-1);
+
+    // little extra, check the conversions
+    uint8_t hex[4];
+    node_->degToPos(goal1, hex);
+    uint8_t ans[4];
+    ans[3] = 0xFF;
+    ans[2] = 0xFF;
+    ans[1] = 0xFE;
+    ans[0] = 0x0C;
+
+    EXPECT_EQ(ans[0], hex[0]);
+    EXPECT_EQ(ans[1], hex[1]);
+    EXPECT_EQ(ans[2], hex[2]);
+    EXPECT_EQ(ans[3], hex[3]);
+
+    node_->degToPos(goal2, hex);
+    ans[3] = 0x00;
+    ans[2] = 0x00;
+    ans[1] = 0x04;
+    ans[0] = 0xB0;
+    EXPECT_EQ(ans[0], hex[0]);
+    EXPECT_EQ(ans[1], hex[1]);
+    EXPECT_EQ(ans[2], hex[2]);
+    EXPECT_EQ(ans[3], hex[3]);
+
+    node_->degToPos(goal3, hex);
+    ans[3] = 0x00;
+    ans[2] = 0x00;
+    ans[1] = 0x13;
+    ans[0] = 0x88;
+    EXPECT_EQ(ans[0], hex[0]);
+    EXPECT_EQ(ans[1], hex[1]);
+    EXPECT_EQ(ans[2], hex[2]);
+    EXPECT_EQ(ans[3], hex[3]);
+
+    node_->degToPos(-439.45, hex);
+    ans[3] = 0xFF;
+    ans[2] = 0xFF;
+    ans[1] = 0xEC;
+    ans[0] = 0x78;
+    EXPECT_EQ(ans[0], hex[0]);
+    EXPECT_EQ(ans[1], hex[1]);
+    EXPECT_EQ(ans[2], hex[2]);
+    EXPECT_EQ(ans[3], hex[3]);
+}
+
+
 int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);
     RclCppFixture g_rclcppfixture(argc, argv);

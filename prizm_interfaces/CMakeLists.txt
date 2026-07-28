@@ -22,6 +22,8 @@ set(msg_files
 set(srv_files
 	"srv/DynamixelGetPos.srv"
 	"srv/DynamixelGetVel.srv"
+    "srv/DynamixelSetProfVel.srv"
+    "srv/DynamixelGetStatus.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

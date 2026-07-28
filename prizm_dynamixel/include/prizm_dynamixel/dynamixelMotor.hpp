@@ -116,8 +116,15 @@ class DynamixelMotor {
         goal_pos[3] = DXL_HIBYTE(DXL_HIWORD(pos_hex));
     }
 
-    float posToDeg(uint16_t pos) {
-        return static_cast<float>(pos / SERVO_FULL_ROT * 360);
+    float posToDeg(uint32_t pos) {
+        //check if the number is negative
+        int flag = 1;
+        if(pos >> 28 & 0xF){
+            pos = ~(pos-1);
+            flag = -1;
+        }
+        return static_cast<float>(pos) / SERVO_FULL_ROT * 360* flag;
+        // return static_cast<float>(pos / SERVO_FULL_ROT * 360);
     }
 
     void rpmToHex(float vel, uint8_t goal_vel[4]) {
@@ -146,6 +153,15 @@ class DynamixelMotor {
         accel_[1] = DXL_HIBYTE(DXL_LOWORD(accel_hex));
         accel_[2] = DXL_LOBYTE(DXL_HIWORD(accel_hex));
         accel_[3] = DXL_HIBYTE(DXL_HIWORD(accel_hex));
+    }
+
+    float hexToRpm(uint32_t vel){
+        int flag = 1;
+        if(vel >> 28 & 0xF){
+            flag = -1;
+            vel = ~(vel-1);
+        }
+        return static_cast<float>(vel) / MOTOR_MAX_PVE * MOTOR_MAX_RPM * flag;
     }
 
    private:

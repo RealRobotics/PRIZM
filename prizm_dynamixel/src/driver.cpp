@@ -10,9 +10,7 @@ int main(int argc, char* argv[]){
     auto driver = std::make_shared<DynamixelDriver>(nodeName, options);
     // std::cout << driver->address << "\n";
 
-    rclcpp::spin(driver);
-
-    
+    rclcpp::spin(driver);    
 
     rclcpp::shutdown();
 

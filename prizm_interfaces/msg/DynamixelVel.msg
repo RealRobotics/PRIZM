@@ -1,3 +1,3 @@
 uint8 id
-int32 velocity
-int32 acceleration
+float32 velocity
+float32 acceleration

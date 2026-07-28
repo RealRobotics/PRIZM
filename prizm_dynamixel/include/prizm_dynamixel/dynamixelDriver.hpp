@@ -14,6 +14,8 @@
 #include <prizm_interfaces/msg/dynamixel_pos_arr.hpp>
 #include <prizm_interfaces/msg/dynamixel_vel.hpp>
 #include <prizm_interfaces/msg/dynamixel_vel_arr.hpp>
+#include <prizm_interfaces/srv/dynamixel_get_status.hpp>
+#include <prizm_interfaces/srv/dynamixel_set_prof_vel.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include "prizm_dynamixel/dynamixelMotor.hpp"
@@ -28,6 +30,8 @@
 #define OP_MODE_LEN 1
 #define DRIVE_MODE_LEN 1
 #define PROF_VEL_LEN 4
+#define CURR_POS_LEN 4
+#define CURR_VEL_LEN 4
 
 // parameters address
 #define PROF_VEL_ADDR 112
@@ -35,6 +39,8 @@
 #define GOAL_VEL_ADDR 104
 #define PROF_ACCEL_ADDR 108
 #define TORQUE_ENABLE_ADDR 64
+#define CURR_POS_ADDR 132
+#define CURR_VEL_ADDR 128
 #define CURR_TEMP_ADDR 146
 #define CURR_VOLT_ADDR 144
 #define OP_MODE_ADDR 11
@@ -51,6 +57,8 @@ typedef prizm_interfaces::msg::DynamixelPos DynaPos;
 typedef prizm_interfaces::msg::DynamixelVel DynaVel;
 typedef prizm_interfaces::msg::DynamixelPosArr DynaPosArr;
 typedef prizm_interfaces::msg::DynamixelVelArr DynaVelArr;
+typedef prizm_interfaces::srv::DynamixelSetProfVel DynaSetProfVel;
+typedef prizm_interfaces::srv::DynamixelGetStatus DynaGetStatus;
 
 typedef std::map<uint8_t, uint8_t*> BulkParamMap;
 
@@ -60,6 +68,7 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void InitMotors();
     void InitDynamixelComms();
     void InitGoalSubscribers();
+    void InitServices();
     void enableTorque(std::vector<uint8_t> ids);
 
     /**
@@ -86,16 +95,15 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void setProfileAccel(std::map<uint8_t, float> accel_map);
     void setServoPos(std::map<uint8_t, float> pos_map);
 
+    std::map<uint8_t, float> getPos(std::vector<uint8_t> ids);
+    std::map<uint8_t, float> getVel(std::vector<uint8_t> ids);
+
     void servoPosGoalCB_(const DynaPosArr& msg);
     void motorVelGoalCB_(const DynaVelArr& msg);
-
-    // uint8_t getMotorId() override;
-    // uint32_t getOpMode() override;
-    // uint32_t getTemp() override;
-    // uint32_t getErrorStatus() override;
-    // uint32_t getCurrentPos() override;
-    // uint32_t getCurrentVel() override;
-    // uint32_t getCurrentAccel() override;
+    void setProfVelSrvCB_(const DynaSetProfVel::Request::SharedPtr req,
+                          DynaSetProfVel::Response::SharedPtr res);
+    void getStatusCB_(const DynaGetStatus::Request::SharedPtr req,
+                      DynaGetStatus::Response::SharedPtr res);
 
     std::string address = "/dev/ttyUSBX";
     std::string paramNamespace_ = "motor_driver";
@@ -112,6 +120,8 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     rclcpp::Subscription<DynaPosArr>::SharedPtr servoGoalPosSub_;
     rclcpp::Subscription<DynaVelArr>::SharedPtr motorGoalPosSub_;
+    rclcpp::Service<DynaSetProfVel>::SharedPtr setProfVelSrv_;
+    rclcpp::Service<DynaGetStatus>::SharedPtr getStatusSrv_;
 
     dynamixel::PortHandler* portHandler_;
     dynamixel::PacketHandler* packetHandler_;
@@ -150,6 +160,7 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     int writeParams(std::map<uint8_t, uint8_t*> val_map,
                     uint16_t insturction_code, uint16_t instruction_len);
 
-    void readParams(std::map<uint8_t, uint8_t*> val_map,
-                    uint16_t instruction_code, uint16_t instruction_len);
+    std::map<uint8_t, uint32_t> readParams(std::vector<uint8_t> addresses,
+                                           uint16_t instruction_code,
+                                           uint16_t instruction_len);
 };

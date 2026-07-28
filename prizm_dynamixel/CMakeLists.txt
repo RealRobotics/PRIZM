@@ -51,10 +51,15 @@ install(DIRECTORY config
   DESTINATION share/${PROJECT_NAME}
 )
 
-
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
+
+install(PROGRAMS
+  scripts/publishPos.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 
 # Tell downstream packages where to find our headers
 ament_export_include_directories(include)

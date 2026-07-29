@@ -28,8 +28,8 @@ def main(args=None):
 
     pos_arr_pub = PosArrPub()
 
-    ids = [0]
-    values = [360.0]
+    ids = [0, 1]
+    values = [90.0, 330.0]
 
     pos_arr_pub.publish_positions(ids, values)
 

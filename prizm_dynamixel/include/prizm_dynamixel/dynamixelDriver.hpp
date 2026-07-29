@@ -17,6 +17,7 @@
 #include <prizm_interfaces/srv/dynamixel_get_status.hpp>
 #include <prizm_interfaces/srv/dynamixel_set_prof_vel.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 
 #include "prizm_dynamixel/dynamixelMotor.hpp"
 
@@ -59,6 +60,7 @@ typedef prizm_interfaces::msg::DynamixelPosArr DynaPosArr;
 typedef prizm_interfaces::msg::DynamixelVelArr DynaVelArr;
 typedef prizm_interfaces::srv::DynamixelSetProfVel DynaSetProfVel;
 typedef prizm_interfaces::srv::DynamixelGetStatus DynaGetStatus;
+typedef std_srvs::srv::SetBool SetBool;
 
 typedef std::map<uint8_t, uint8_t*> BulkParamMap;
 
@@ -104,6 +106,8 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
                           DynaSetProfVel::Response::SharedPtr res);
     void getStatusCB_(const DynaGetStatus::Request::SharedPtr req,
                       DynaGetStatus::Response::SharedPtr res);
+    void setTorqueCB_(const SetBool::Request::SharedPtr req,
+                      SetBool::Response::SharedPtr res);
 
     std::string address = "/dev/ttyUSBX";
     std::string paramNamespace_ = "motor_driver";
@@ -117,11 +121,13 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     std::vector<uint8_t> allIds_, motorIds_, servoIds_;
     DynamixelDriver();
     DynamixelDriver(std::string& nodeName, rclcpp::NodeOptions& options);
+    ~DynamixelDriver();
 
     rclcpp::Subscription<DynaPosArr>::SharedPtr servoGoalPosSub_;
     rclcpp::Subscription<DynaVelArr>::SharedPtr motorGoalPosSub_;
     rclcpp::Service<DynaSetProfVel>::SharedPtr setProfVelSrv_;
     rclcpp::Service<DynaGetStatus>::SharedPtr getStatusSrv_;
+    rclcpp::Service<SetBool>::SharedPtr setTorqueSrv_;
 
     dynamixel::PortHandler* portHandler_;
     dynamixel::PacketHandler* packetHandler_;
@@ -158,6 +164,9 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
      * @return 1 for succcessful comm, -1 for unsuccessful
      */
     int writeParams(std::map<uint8_t, uint8_t*> val_map,
+                    uint16_t insturction_code, uint16_t instruction_len);
+
+    int writeParams(std::map<uint8_t,std::vector<uint8_t>> val_map,
                     uint16_t insturction_code, uint16_t instruction_len);
 
     std::map<uint8_t, uint32_t> readParams(std::vector<uint8_t> addresses,

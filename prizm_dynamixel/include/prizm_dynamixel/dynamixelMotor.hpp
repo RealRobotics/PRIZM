@@ -101,37 +101,44 @@ class DynamixelMotor {
     //     return 1;
     // }
 
-    void degToPos(float angle_deg, uint8_t goal_pos[4]) {
+    std::vector<uint8_t> degToPos(float angle_deg) {
         // uint32_t pos_hex =
+        std::vector<uint8_t> goal_pos(4);
         uint32_t pos_hex = 0;
-        if(angle_deg < 0) {
-            pos_hex = ~static_cast<uint32_t>(std::round(abs(angle_deg / 360 * SERVO_FULL_ROT)))+1;
+        if (angle_deg < 0) {
+            pos_hex = ~static_cast<uint32_t>(
+                          std::round(abs(angle_deg / 360 * SERVO_FULL_ROT))) +
+                      1;
         } else {
-            pos_hex = static_cast<uint32_t>(std::round(angle_deg/360*SERVO_FULL_ROT));
+            pos_hex = static_cast<uint32_t>(
+                std::round(angle_deg / 360 * SERVO_FULL_ROT));
         }
         // uint8_t goal_pos[4];
         goal_pos[0] = DXL_LOBYTE(DXL_LOWORD(pos_hex));
         goal_pos[1] = DXL_HIBYTE(DXL_LOWORD(pos_hex));
         goal_pos[2] = DXL_LOBYTE(DXL_HIWORD(pos_hex));
         goal_pos[3] = DXL_HIBYTE(DXL_HIWORD(pos_hex));
+        return goal_pos;
     }
 
     float posToDeg(uint32_t pos) {
-        //check if the number is negative
+        // check if the number is negative
         int flag = 1;
-        if(pos >> 28 & 0xF){
-            pos = ~(pos-1);
+        if (pos >> 28 & 0xF) {
+            pos = ~(pos - 1);
             flag = -1;
         }
-        return static_cast<float>(pos) / SERVO_FULL_ROT * 360* flag;
+        return static_cast<float>(pos) / SERVO_FULL_ROT * 360 * flag;
         // return static_cast<float>(pos / SERVO_FULL_ROT * 360);
     }
 
-    void rpmToHex(float vel, uint8_t goal_vel[4]) {
+    std::vector<uint8_t> rpmToHex(float vel) {
+        std::vector<uint8_t> goal_vel;
         uint32_t vel_hex;
         if (vel < 0) {
-            vel_hex = ~static_cast<uint32_t>(
-                std::round(abs(vel / MOTOR_MAX_RPM * MOTOR_MAX_PVE))) + 1;
+            vel_hex = ~static_cast<uint32_t>(std::round(
+                          abs(vel / MOTOR_MAX_RPM * MOTOR_MAX_PVE))) +
+                      1;
 
         } else {
             // static_cast<uint32_t>();
@@ -142,24 +149,24 @@ class DynamixelMotor {
         goal_vel[1] = DXL_HIBYTE(DXL_LOWORD(vel_hex));
         goal_vel[2] = DXL_LOBYTE(DXL_HIWORD(vel_hex));
         goal_vel[3] = DXL_HIBYTE(DXL_HIWORD(vel_hex));
+        return goal_vel;
     }
 
-    void accelToHex(float accel, uint8_t accel_[4]){
+    void accelToHex(float accel, uint8_t accel_[4]) {
         uint32_t accel_hex;
         accel_hex = static_cast<uint32_t>(
-            std::round(accel / MOTOR_MAX_ACCEL * MOTOR_MAX_INT)
-        );
+            std::round(accel / MOTOR_MAX_ACCEL * MOTOR_MAX_INT));
         accel_[0] = DXL_LOBYTE(DXL_LOWORD(accel_hex));
         accel_[1] = DXL_HIBYTE(DXL_LOWORD(accel_hex));
         accel_[2] = DXL_LOBYTE(DXL_HIWORD(accel_hex));
         accel_[3] = DXL_HIBYTE(DXL_HIWORD(accel_hex));
     }
 
-    float hexToRpm(uint32_t vel){
+    float hexToRpm(uint32_t vel) {
         int flag = 1;
-        if(vel >> 28 & 0xF){
+        if (vel >> 28 & 0xF) {
             flag = -1;
-            vel = ~(vel-1);
+            vel = ~(vel - 1);
         }
         return static_cast<float>(vel) / MOTOR_MAX_PVE * MOTOR_MAX_RPM * flag;
     }

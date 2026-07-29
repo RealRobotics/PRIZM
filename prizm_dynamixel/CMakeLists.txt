@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(dynamixel_sdk REQUIRED)
 find_package(prizm_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_srvs REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -23,12 +24,12 @@ ament_target_dependencies(single_servo
   rclcpp
 )
 
-add_executable(single_motor src/single_motor.cpp)
-ament_target_dependencies(single_motor
-  dynamixel_sdk
-  prizm_interfaces
-  rclcpp
-)
+# add_executable(single_motor src/single_motor.cpp)
+# ament_target_dependencies(single_motor
+#   dynamixel_sdk
+#   prizm_interfaces
+#   rclcpp
+# )
 
 add_executable(driver
   src/driver.cpp
@@ -36,13 +37,14 @@ add_executable(driver
 )
 ament_target_dependencies(driver
   dynamixel_sdk
+  std_srvs
   prizm_interfaces
   rclcpp
 )
 
 install(TARGETS
   single_servo
-  single_motor
+  # single_motor
   driver
   DESTINATION lib/${PROJECT_NAME}
 )
@@ -57,6 +59,7 @@ install(DIRECTORY launch
 
 install(PROGRAMS
   scripts/publishPos.py
+  scripts/publishVel.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -105,6 +108,7 @@ if(BUILD_TESTING)
   ament_target_dependencies(servo_driver_test
     dynamixel_sdk
     prizm_interfaces
+    std_srvs
     rclcpp
   )
 

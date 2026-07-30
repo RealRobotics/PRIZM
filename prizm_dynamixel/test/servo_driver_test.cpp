@@ -122,7 +122,6 @@ TEST_F(TestMotorDriver, MotorVelCallback) {
     ASSERT_EQ(node_->motorMap_[p3.id].goalVel_, p3.velocity);
 }
 
-
 TEST_F(TestMotorDriver, TorqueEnableTest) {
     std::vector<uint8_t> ids = {0x00, 0x02, 0x09};
 
@@ -147,13 +146,10 @@ TEST_F(TestMotorDriver, ChangeOperatingModeTest) {
               OperatingModes::VELOCITY_CONTROL);
 }
 
-TEST_F(TestMotorDriver, SetSpeed){
+TEST_F(TestMotorDriver, SetSpeed) {
     uint8_t id1 = 0x06;
     uint8_t id2 = 0x09;
-    std::map<uint8_t, float> vel_input = {
-        {0x06, 20.14},
-        {0x09, -11.44}
-    };
+    std::map<uint8_t, float> vel_input = {{0x06, 20.14}, {0x09, -11.44}};
     node_->setGoalVelocity(vel_input);
     auto vel_1 = node_->motorMap_[id1].goalVel_;
     auto vel_2 = node_->motorMap_[id2].goalVel_;
@@ -161,8 +157,8 @@ TEST_F(TestMotorDriver, SetSpeed){
     ASSERT_NEAR(vel_2, -11.44, 1e-1);
 
     // little extra, check the conversions
-    uint8_t hex[4];
-    node_->rpmToHex(20.14, hex);
+    std::vector<uint8_t> hex;
+    hex = node_->rpmToHex(20.14);
     uint8_t ans[4];
     ans[3] = 0x00;
     ans[2] = 0x00;
@@ -174,7 +170,7 @@ TEST_F(TestMotorDriver, SetSpeed){
     EXPECT_EQ(ans[2], hex[2]);
     EXPECT_EQ(ans[3], hex[3]);
 
-    node_->rpmToHex(-11.44, hex);
+    hex = node_->rpmToHex(-11.44);
     ans[3] = 0xFF;
     ans[2] = 0xFF;
     ans[1] = 0xFF;
@@ -185,16 +181,13 @@ TEST_F(TestMotorDriver, SetSpeed){
     EXPECT_EQ(ans[3], hex[3]);
 }
 
-TEST_F(TestMotorDriver, SetServoPos){
+TEST_F(TestMotorDriver, SetServoPos) {
     uint8_t id1 = 0x00;
     uint8_t id2 = 0x01;
     uint8_t id3 = 0x02;
     float goal1 = -43.95, goal2 = 105.47, goal3 = 439.45;
     std::map<uint8_t, float> pos_input = {
-        {id1, goal1},
-        {id2, goal2},
-        {id3, goal3}
-    };
+        {id1, goal1}, {id2, goal2}, {id3, goal3}};
     node_->setServoPos(pos_input);
     auto pos1 = node_->servoMap_[id1].goalPos_;
     auto pos2 = node_->servoMap_[id2].goalPos_;
@@ -204,8 +197,7 @@ TEST_F(TestMotorDriver, SetServoPos){
     ASSERT_NEAR(pos3, goal3, 1e-1);
 
     // little extra, check the conversions
-    uint8_t hex[4];
-    node_->degToPos(goal1, hex);
+    std::vector<uint8_t> hex = node_->degToPos(goal1);
     uint8_t ans[4];
     ans[3] = 0xFF;
     ans[2] = 0xFF;
@@ -217,7 +209,7 @@ TEST_F(TestMotorDriver, SetServoPos){
     EXPECT_EQ(ans[2], hex[2]);
     EXPECT_EQ(ans[3], hex[3]);
 
-    node_->degToPos(goal2, hex);
+    hex = node_->degToPos(goal2);
     ans[3] = 0x00;
     ans[2] = 0x00;
     ans[1] = 0x04;
@@ -227,7 +219,7 @@ TEST_F(TestMotorDriver, SetServoPos){
     EXPECT_EQ(ans[2], hex[2]);
     EXPECT_EQ(ans[3], hex[3]);
 
-    node_->degToPos(goal3, hex);
+    hex = node_->degToPos(goal3);
     ans[3] = 0x00;
     ans[2] = 0x00;
     ans[1] = 0x13;
@@ -237,7 +229,7 @@ TEST_F(TestMotorDriver, SetServoPos){
     EXPECT_EQ(ans[2], hex[2]);
     EXPECT_EQ(ans[3], hex[3]);
 
-    node_->degToPos(-439.45, hex);
+    hex = node_->degToPos(-439.45);
     ans[3] = 0xFF;
     ans[2] = 0xFF;
     ans[1] = 0xEC;
@@ -247,7 +239,6 @@ TEST_F(TestMotorDriver, SetServoPos){
     EXPECT_EQ(ans[2], hex[2]);
     EXPECT_EQ(ans[3], hex[3]);
 }
-
 
 int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);

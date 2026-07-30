@@ -113,7 +113,7 @@ class DynamixelMotor {
             pos_hex = static_cast<uint32_t>(
                 std::round(angle_deg / 360 * SERVO_FULL_ROT));
         }
-        // uint8_t goal_pos[4];
+
         goal_pos[0] = DXL_LOBYTE(DXL_LOWORD(pos_hex));
         goal_pos[1] = DXL_HIBYTE(DXL_LOWORD(pos_hex));
         goal_pos[2] = DXL_LOBYTE(DXL_HIWORD(pos_hex));
@@ -133,7 +133,7 @@ class DynamixelMotor {
     }
 
     std::vector<uint8_t> rpmToHex(float vel) {
-        std::vector<uint8_t> goal_vel;
+        std::vector<uint8_t> goal_vel(4);
         uint32_t vel_hex;
         if (vel < 0) {
             vel_hex = ~static_cast<uint32_t>(std::round(
@@ -152,7 +152,8 @@ class DynamixelMotor {
         return goal_vel;
     }
 
-    void accelToHex(float accel, uint8_t accel_[4]) {
+    std::vector<uint8_t> accelToHex(float accel) {
+        std::vector<uint8_t> accel_(4);
         uint32_t accel_hex;
         accel_hex = static_cast<uint32_t>(
             std::round(accel / MOTOR_MAX_ACCEL * MOTOR_MAX_INT));
@@ -160,6 +161,7 @@ class DynamixelMotor {
         accel_[1] = DXL_HIBYTE(DXL_LOWORD(accel_hex));
         accel_[2] = DXL_LOBYTE(DXL_HIWORD(accel_hex));
         accel_[3] = DXL_HIBYTE(DXL_HIWORD(accel_hex));
+        return accel_;
     }
 
     float hexToRpm(uint32_t vel) {

@@ -26,6 +26,7 @@
 #define GOAL_VEL_LEN 4
 #define GOAL_ACCEL_LEN 4
 #define TORQUE_ENABLE_LEN 1
+#define LED_ENABLE_LEN 1
 #define CURR_TEMP_LEN 1
 #define CURR_VOLT_LEN 2
 #define OP_MODE_LEN 1
@@ -40,6 +41,7 @@
 #define GOAL_VEL_ADDR 104
 #define PROF_ACCEL_ADDR 108
 #define TORQUE_ENABLE_ADDR 64
+#define LED_ENABLE_ADDR 65
 #define CURR_POS_ADDR 132
 #define CURR_VEL_ADDR 128
 #define CURR_TEMP_ADDR 146
@@ -62,7 +64,7 @@ typedef prizm_interfaces::srv::DynamixelSetProfVel DynaSetProfVel;
 typedef prizm_interfaces::srv::DynamixelGetStatus DynaGetStatus;
 typedef std_srvs::srv::SetBool SetBool;
 
-typedef std::map<uint8_t, uint8_t*> BulkParamMap;
+typedef std::map<uint8_t, std::vector<uint8_t>> BulkParamMap;
 
 class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
    public:
@@ -72,15 +74,26 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void InitGoalSubscribers();
     void InitServices();
     void enableTorque(std::vector<uint8_t> ids);
+    void readMotorID();
+    void readMotorLED();
 
     /**
-     * @brief Toggles the output torque on or off based on input.
+     * @brief Sets the output torque on or off based on input.
      * This function does not close the mutex.
      *
      * @param ids list of motor IDs to toggle.
      * @param toggle true for on, false for off.
      */
-    void toggle_torque(std::vector<uint8_t> ids, bool toggle);
+    void set_torque(std::vector<uint8_t> ids, uint8_t toggle);
+
+    /**
+     * @brief Sets the output torque on or off based on input.
+     * This function does not close the mutex.
+     *
+     * @param ids list of motor IDs to toggle.
+     * @param toggle true for on, false for off.
+     */
+    void set_leds(std::vector<uint8_t> ids, uint8_t toggle);
 
     /**
      * @brief Changes operating mode based on inputted map, see
@@ -129,10 +142,15 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     rclcpp::Service<DynaGetStatus>::SharedPtr getStatusSrv_;
     rclcpp::Service<SetBool>::SharedPtr setTorqueSrv_;
 
-    dynamixel::PortHandler* portHandler_;
-    dynamixel::PacketHandler* packetHandler_;
-    std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
-    std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
+    static dynamixel::PortHandler* portHandler_;
+    static dynamixel::PacketHandler* packetHandler_;
+    static dynamixel::GroupBulkRead* groupBulkRead_;
+    static dynamixel::GroupBulkWrite* groupBulkWrite_;
+
+    // dynamixel::PortHandler* portHandler_;
+    // dynamixel::PacketHandler* packetHandler_;
+    // std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
+    // std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
     int dxl_comm_result = COMM_TX_FAIL;
     uint8_t dxl_error = 0;
     float profile_velocity = 0, profile_acceleration = 0;
@@ -154,22 +172,24 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
      * functions are expected to implement their own to ensure no data races
      * occur.
      *
-     * @param val_map K: motor ID to write for V: uint32_t broken into a list of
-     * uint8_t. Use the conversion functions in ```DynamixelMotor``` to handle
-     * this.
+     * @param val_map K: motor ID to write for V: std::vector<uint8_t> a
+     * uint32_t broken into a list of uint8_t. Use the conversion functions in
+     * ```DynamixelMotor``` to handle this.
      * @param insturction_code Instruction address from the motor reference
      * sheet
      * @param instruction_len Length of the instruction from the reference
      * sheet.
      * @return 1 for succcessful comm, -1 for unsuccessful
      */
-    int writeParams(std::map<uint8_t, uint8_t*> val_map,
-                    uint16_t insturction_code, uint16_t instruction_len);
-
-    int writeParams(std::map<uint8_t,std::vector<uint8_t>> val_map,
+    int writeParams(std::map<uint8_t, std::vector<uint8_t>> val_map,
                     uint16_t insturction_code, uint16_t instruction_len);
 
     std::map<uint8_t, uint32_t> readParams(std::vector<uint8_t> addresses,
                                            uint16_t instruction_code,
                                            uint16_t instruction_len);
+
+    void singleRead(uint8_t id, uint16_t code);
+    void singleRead4B(uint8_t id, uint16_t code);
+    void singleWrite(uint8_t id, uint16_t code, uint8_t data);
+    void singleWrite4B(uint8_t id, uint16_t code, uint32_t data);
 };

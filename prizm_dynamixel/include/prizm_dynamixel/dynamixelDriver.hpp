@@ -147,7 +147,7 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     /**
      * @brief Set the Profile Velocity for a list of motors.
-    * This function checks the servo map, so non-valid IDs are automatically
+     * This function checks the servo map, so non-valid IDs are automatically
      * ignored.
      * @param vel_map K: ID of the motor V: Desired goal velocity in RPM. Will
      * be converted down the line
@@ -156,7 +156,26 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     void setProfileAccel(std::map<uint8_t, float> accel_map);
     void setServoPos(std::map<uint8_t, float> pos_map);
 
+    /**
+     * @brief Get the Pos of a group of motors/servos. This function calls
+     * ```readParams``` for the current position and does the hex to position
+     * conversion using ```posToDeg```.
+     *
+     * @param ids list of motor IDs. The function does not validate this.
+     * @return std::map<uint8_t, float> K: the motor/servo ID, V: the position
+     * in degrees.
+     */
     std::map<uint8_t, float> getPos(std::vector<uint8_t> ids);
+
+    /**
+     * @brief Get the velocity of a group of motors. This function calls
+     * ```readParams``` for the current velocity and does the hex to position
+     * conversion using ```hexToRpm```. This function will return 0 for servos
+     * since they use the profile velocity as their velocity parameter.
+     *
+     * @param ids list of motor IDs. The function does not validate this.
+     * @return std::map<uint8_t, float> K: the motor ID, V: the velocity in RPM.
+     */
     std::map<uint8_t, float> getVel(std::vector<uint8_t> ids);
 
     void servoPosGoalCB_(const DynaPosArr& msg);
@@ -210,9 +229,8 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     /**
      * @brief Uses ```groupBulkWrite_``` to write multiple instructions in one
-     * go. This function does not have any blocking builtin. The Writing
-     * functions are expected to implement their own to ensure no data races
-     * occur.
+     * go. This function locks the mutex, there is no need for any functions
+     * using it to place their own lock.
      *
      * @param val_map K: motor ID to write for V: std::vector<uint8_t> a
      * uint32_t broken into a list of uint8_t. Use the conversion functions in
@@ -226,12 +244,62 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     int writeParams(std::map<uint8_t, std::vector<uint8_t>> val_map,
                     uint16_t insturction_code, uint16_t instruction_len);
 
+    /**
+     * @brief Uses ```groupBulkRead_``` to read multiple addresses at once.
+     * This function locks the mutex, there is no need to lock before calling.
+     *
+     * @param addresses list of addresses to read. It is assumed that if you got
+     * this far in the function, the list is validated.
+     * @param instruction_code address to perform the read at
+     * @param instruction_len byte len of the instruction
+     * @return std::map<uint8_t, uint32_t> K: the ID for the read value, V: the
+     * read value.
+     */
     std::map<uint8_t, uint32_t> readParams(std::vector<uint8_t> addresses,
                                            uint16_t instruction_code,
                                            uint16_t instruction_len);
 
+    /**
+     * @brief utility function. Reads a single byte instruction for a single
+     * motor ID. This function locks the mutex.
+     *
+     * @param id the ID to read from, the function does not validate this, so
+     * make sure it is valid prior to calling.
+     * @param code instruction address to read from
+     * @return uint8_t the read value
+     */
     uint8_t singleRead(uint8_t id, uint16_t code);
+
+    /**
+     * @brief utility function. Reads a 4 byte instruction for a single
+     * motor ID. This function locks the mutex.
+     *
+     * @param id the ID to read from, the function does not validate this, so
+     * make sure it is valid prior to calling.
+     * @param code instruction address to read from
+     * @return uint8_t the read value
+     */
     void singleRead4B(uint8_t id, uint16_t code);
+
+    /**
+     * @brief utility function. Writes a 1 byte instruction for a single motor
+     * id. This function locks the mutex.
+     *
+     * @param id the ID to write to. This function does not validate the ID, do
+     * that beforehand.
+     * @param code instruction code
+     * @param data data to write.
+     */
     void singleWrite(uint8_t id, uint16_t code, uint8_t data);
+
+    /**
+     * @brief utility function. Writes a 4 byte instruction for a single motor
+     * id. This function locks the mutex.
+     *
+     * @param id the ID to write to. This function does not validate the ID, do
+     * that beforehand.
+     * @param code instruction code
+     * @param data data to write.
+     */
     void singleWrite4B(uint8_t id, uint16_t code, uint32_t data);
 };

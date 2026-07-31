@@ -172,14 +172,14 @@ void DynamixelDriver::InitDynamixelComms() {
 void DynamixelDriver::InitGoalSubscribers() {
     if (numServos_ != 0) {
         servoGoalPosSub_ = this->create_subscription<DynaPosArr>(
-            "servo_pos", 10,
+            paramNamespace_ + "/servo_pos", 10,
             std::bind(&DynamixelDriver::servoPosGoalCB_, this,
                       std::placeholders::_1));
     }
 
     if (numMotors_ != 0) {
         motorGoalPosSub_ = this->create_subscription<DynaVelArr>(
-            "motor_vel", 10,
+            paramNamespace_ + "/motor_vel", 10,
             std::bind(&DynamixelDriver::motorVelGoalCB_, this,
                       std::placeholders::_1));
     }
@@ -187,16 +187,16 @@ void DynamixelDriver::InitGoalSubscribers() {
 
 void DynamixelDriver::InitServices() {
     setProfVelSrv_ = this->create_service<DynaSetProfVel>(
-        "set_profile_velocity",
+        paramNamespace_ + "/set_profile_velocity",
         std::bind(&DynamixelDriver::setProfVelSrvCB_, this,
                   std::placeholders::_1, std::placeholders::_2));
 
     getStatusSrv_ = this->create_service<DynaGetStatus>(
-        "get_status", std::bind(&DynamixelDriver::getStatusCB_, this,
+        paramNamespace_ + "/get_status", std::bind(&DynamixelDriver::getStatusCB_, this,
                                 std::placeholders::_1, std::placeholders::_2));
 
     setTorqueSrv_ = this->create_service<SetBool>(
-        "set_torque", std::bind(&DynamixelDriver::setTorqueCB_, this,
+        paramNamespace_ + "/set_torque", std::bind(&DynamixelDriver::setTorqueCB_, this,
                                 std::placeholders::_1, std::placeholders::_2));
 }
 
@@ -732,6 +732,7 @@ std::map<uint8_t, float> DynamixelDriver::getVel(std::vector<uint8_t> ids) {
 }
 
 uint8_t DynamixelDriver::singleRead(uint8_t id, uint16_t code) {
+    std::scoped_lock lock(comms_mutex_);
     uint8_t output = 0;
     dxl_comm_result = packetHandler_->read1ByteTxRx(portHandler_, id, code,
                                                     &output, &dxl_error);

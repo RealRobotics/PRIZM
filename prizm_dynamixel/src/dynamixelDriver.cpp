@@ -141,14 +141,19 @@ void DynamixelDriver::InitMotors() {
     }
 
     changeOperatingMode(op_mode_map);
+    for (const auto& pair : op_mode_map) {
+        RCLCPP_INFO(this->get_logger(),
+                    "Sanity check of op mode map: ID 0x%x, Val 0x%x",
+                    pair.first, pair.second);
+    }
     // singleWrite(0x01, OP_MODE_ADDR, 4);
     // singleWrite(0x00, OP_MODE_ADDR, 4);
     set_leds(allIds_, 0x01);
     // singleRead(0x00, 65);
     // singleRead(0x01, 65);
     set_torque(allIds_, 0x01);
-    // singleRead(0x00, 64);
-    // singleRead(0x01, 64);
+    singleRead(0x00, 64);
+    singleRead(0x01, 64);
     // singleRead4B(0x00, 132);
     // singleRead4B(0x01, 132);
 
@@ -160,6 +165,9 @@ void DynamixelDriver::InitMotors() {
 
     singleRead(0x00, OP_MODE_ADDR);
     singleRead(0x01, OP_MODE_ADDR);
+
+    singleRead4B(0x00, GOAL_VEL_ADDR);
+    singleRead4B(0x01, GOAL_VEL_ADDR);
     // setProfileAccel(profile_accel_map);
     // set_leds(allIds_, true);
 }
@@ -323,6 +331,8 @@ void DynamixelDriver::motorVelGoalCB_(const DynaVelArr& msg) {
             std::cerr << e.what() << '\n';
         }
     }
+    singleRead4B(0x00, GOAL_VEL_ADDR);
+    singleRead4B(0x01, GOAL_VEL_ADDR);
 }
 
 void DynamixelDriver::setProfVelSrvCB_(
@@ -515,28 +525,27 @@ void DynamixelDriver::set_torque(std::vector<uint8_t> ids, uint8_t toggle) {
                                  ids[i],
                                  packetHandler_->getRxPacketError(dxl_error));
                 }
-            } else if (motorMap_it != motorMap_.end()) {
-                if (!debug) {
-                    dxl_comm_result = packetHandler_->write1ByteTxRx(
-                        portHandler_, ids[i], TORQUE_ENABLE_ADDR, toggle,
-                        &dxl_error);
-                    if (dxl_comm_result != COMM_SUCCESS) {
-                        RCLCPP_ERROR(
-                            this->get_logger(), "ID: 0x%2X Comm error: %s",
-                            ids[i],
-                            packetHandler_->getTxRxResult(dxl_comm_result));
-                    } else if (dxl_error != 0) {
-                        RCLCPP_ERROR(
-                            this->get_logger(), "ID: 0x%2X Comm error %s ",
-                            ids[i],
-                            packetHandler_->getRxPacketError(dxl_error));
-                    }
-                }
-                motorMap_it->second.torqueEnable_ = toggle;
             }
+        } else if (motorMap_it != motorMap_.end()) {
+            if (!debug) {
+                dxl_comm_result = packetHandler_->write1ByteTxRx(
+                    portHandler_, ids[i], TORQUE_ENABLE_ADDR, toggle,
+                    &dxl_error);
+                if (dxl_comm_result != COMM_SUCCESS) {
+                    RCLCPP_ERROR(
+                        this->get_logger(), "ID: 0x%2X Comm error: %s", ids[i],
+                        packetHandler_->getTxRxResult(dxl_comm_result));
+                } else if (dxl_error != 0) {
+                    RCLCPP_ERROR(this->get_logger(), "ID: 0x%2X Comm error %s ",
+                                 ids[i],
+                                 packetHandler_->getRxPacketError(dxl_error));
+                }
+            }
+            motorMap_it->second.torqueEnable_ = toggle;
         }
     }
 }
+
 
 void DynamixelDriver::set_leds(std::vector<uint8_t> ids, uint8_t toggle) {
     // std::scoped_lock lock(comms_lock_);
@@ -677,6 +686,8 @@ void DynamixelDriver::setGoalVelocity(std::map<uint8_t, float> vel_map) {
         // 1. update the cached values
         auto id = pair.first;
         auto vel = pair.second;
+        RCLCPP_INFO(this->get_logger(),
+                    "Populating vel_map for goal velocity of id %d", id);
 
         if (motorMap_.find(id) != motorMap_.end()) {
             motorMap_[id].goalVel_ = vel;

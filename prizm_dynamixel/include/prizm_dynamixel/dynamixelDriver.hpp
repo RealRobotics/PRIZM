@@ -68,12 +68,43 @@ typedef std::map<uint8_t, std::vector<uint8_t>> BulkParamMap;
 
 class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
    public:
-    // void InitServos();
+    /**
+     * @brief Sets up all the motor related stuff based on the number of
+     * servos/motors and their ids that have been pulled from the config file.
+     * If using this on hardware, make sure that
+     * 1. ```InitDynamixelComms``` has been called first
+     * 2. ```debug``` parameter has been set
+     */
     void InitMotors();
+
+    /**
+     * @brief Sets up the dynamixel communication objects.
+     * Namely, ```portHandler_```, ```packetHandler_```, ```groupBulkRead_```
+     * and ```groupBulkWrite_```.
+     * This HAS to be called before any read/write can happen.
+     * The function does nothing if the parameter ```debug``` is set to true.
+     */
     void InitDynamixelComms();
+
+    /**
+     * @brief Sets up the ServoPosition and MotorVelocity callbacks.
+     *
+     */
     void InitGoalSubscribers();
+
+    /**
+     * @brief Sets up the SetProfileVelocity, GetStatus and SetTorque services.
+     *
+     */
     void InitServices();
+
+    /**
+     * @brief Enables the torque for the all ids in the list provided.
+     *
+     * @param ids list of motor ids.
+     */
     void enableTorque(std::vector<uint8_t> ids);
+
     void readMotorID();
     void readMotorLED();
 
@@ -105,7 +136,22 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
      */
     void changeOperatingMode(std::map<uint8_t, uint8_t> op_mode_map);
 
+    /**
+     * @brief Set the Goal Velocity for a list of motors.
+     * This function checks the motor map, so non-valid IDs are automatically
+     * ignored.
+     * @param vel_map K: ID of the motor V: Desired goal velocity in RPM. Will
+     * be converted down the line
+     */
     void setGoalVelocity(std::map<uint8_t, float> vel_map);
+
+    /**
+     * @brief Set the Profile Velocity for a list of motors.
+    * This function checks the servo map, so non-valid IDs are automatically
+     * ignored.
+     * @param vel_map K: ID of the motor V: Desired goal velocity in RPM. Will
+     * be converted down the line
+     */
     void setProfileVelocity(std::map<uint8_t, float> vel_map);
     void setProfileAccel(std::map<uint8_t, float> accel_map);
     void setServoPos(std::map<uint8_t, float> pos_map);
@@ -147,10 +193,6 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
     static dynamixel::GroupBulkRead* groupBulkRead_;
     static dynamixel::GroupBulkWrite* groupBulkWrite_;
 
-    // dynamixel::PortHandler* portHandler_;
-    // dynamixel::PacketHandler* packetHandler_;
-    // std::shared_ptr<dynamixel::GroupBulkRead> groupBulkRead_;
-    // std::shared_ptr<dynamixel::GroupBulkWrite> groupBulkWrite_;
     int dxl_comm_result = COMM_TX_FAIL;
     uint8_t dxl_error = 0;
     float profile_velocity = 0, profile_acceleration = 0;

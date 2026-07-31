@@ -118,14 +118,12 @@ void DynamixelDriver::InitMotors() {
                 "I have instantiated %d servos and %d motors.", numServos_,
                 numMotors_);
 
-
     // Set the profile velocity for the servos
     auto profile_vel_map = std::map<uint8_t, float>();
     for (auto& pair : servoMap_) {
         profile_vel_map.insert({pair.first, profile_velocity});
         pair.second.profVel_ = profile_velocity;
     }
-    
 
     // Set the profile acceleration for the motors
     auto profile_accel_map = std::map<uint8_t, float>();
@@ -137,30 +135,7 @@ void DynamixelDriver::InitMotors() {
     setProfileAccel(profile_accel_map);
 
     changeOperatingMode(op_mode_map);
-    // for (const auto& pair : op_mode_map) {
-    //     RCLCPP_INFO(this->get_logger(),
-    //                 "Sanity check of op mode map: ID 0x%x, Val 0x%x",
-    //                 pair.first, pair.second);
-    // }
     set_leds(allIds_, 0x01);
-    set_torque(allIds_, 0x01);
-    singleRead(0x00, 64);
-    singleRead(0x01, 64);
-    // singleRead4B(0x00, 132);
-    // singleRead4B(0x01, 132);
-
-    // singleWrite4B(0x00, GOAL_POS_ADDR, 0);
-    // singleWrite4B(0x01, GOAL_POS_ADDR, 4095);
-
-    // singleRead4B(0x00, 132);
-    // singleRead4B(0x01, 132);
-
-    singleRead(0x00, OP_MODE_ADDR);
-    singleRead(0x01, OP_MODE_ADDR);
-
-    singleRead4B(0x00, GOAL_VEL_ADDR);
-    singleRead4B(0x01, GOAL_VEL_ADDR);
-    // set_leds(allIds_, true);
 }
 
 void DynamixelDriver::InitDynamixelComms() {
@@ -312,11 +287,6 @@ void DynamixelDriver::motorVelGoalCB_(const DynaVelArr& msg) {
             }
             if (!goal_vel_map.empty()) setGoalVelocity(goal_vel_map);
             if (!prof_vel_map.empty()) setProfileVelocity(prof_vel_map);
-            // } else {
-            //     find_it->second.goalVel_ = msg.vel_array[i].velocity;
-            //     vel_map.insert({find_it->first, find_it->second.goalVel_});
-            // }
-            // setGoalVelocity(vel_map);
 
         } catch (const std::exception& e) {
             std::cerr << e.what() << '\n';
@@ -374,18 +344,8 @@ void DynamixelDriver::getStatusCB_(const DynaGetStatus::Request::SharedPtr req,
 int DynamixelDriver::writeParams(
     std::map<uint8_t, std::vector<uint8_t>> val_map, uint16_t insturction_code,
     uint16_t instruction_len) {
-    // std::scoped_lock lock(comms_mutex_);
+    std::scoped_lock lock(comms_mutex_);
     groupBulkWrite_->clearParam();
-
-    // RCLCPP_INFO(this->get_logger(), "0x%x%x%x%x", val_map[0x00][3],
-    //             val_map[0x00][2], val_map[0x00][1], val_map[0x00][0]);
-    // RCLCPP_INFO(this->get_logger(), "0x%x%x%x%x", val_map[0x01][3],
-    //             val_map[0x01][2], val_map[0x01][1], val_map[0x01][0]);
-
-    // for (auto const& pair : val_map) {
-    //     RCLCPP_INFO(this->get_logger(), "writeParam: k: 0x%x v: 0x%x%x%x%x",
-    //                 pair.first, pair.second[3], pair.second[1],
-    //                 pair.second[2], pair.second[0]);
 
     for (auto const& pair : val_map) {
         uint8_t hex[4];
@@ -393,13 +353,6 @@ int DynamixelDriver::writeParams(
         hex[1] = pair.second[1];
         hex[2] = pair.second[2];
         hex[3] = pair.second[3];
-
-        // dxl_addparam_result = groupBulkWrite.addParam(dxl_id1,
-        // goal_position_address, data_length_4byte, param_goal_position); if
-        // (!dxl_addparam_result) {
-        //   std::cout <<"[ID:" << (int)dxl_id1  <<"]groupBulkWrite addparam
-        //   failed" << std::endl; return 0;
-        // }
 
         auto dxl_addparam_result = groupBulkWrite_->addParam(
             pair.first, insturction_code, instruction_len, hex);
@@ -410,8 +363,8 @@ int DynamixelDriver::writeParams(
             return 0;
         } else {
             RCLCPP_INFO(this->get_logger(),
-                        "Bulk Write: Added param ID: 0x%x, Val: 0x%x%x%x%x", pair.first,
-                        hex[3], hex[2], hex[1], hex[0]);
+                        "Bulk Write: Added param ID: 0x%x, Val: 0x%x%x%x%x",
+                        pair.first, hex[3], hex[2], hex[1], hex[0]);
         }
     }
     dxl_comm_result = groupBulkWrite_->txPacket();
@@ -438,6 +391,7 @@ int DynamixelDriver::writeParams(
 std::map<uint8_t, uint32_t> DynamixelDriver::readParams(
     std::vector<uint8_t> addresses, uint16_t instruction_code,
     uint16_t instruction_len) {
+    std::scoped_lock lock(comms_mutex_);
     std::map<uint8_t, uint32_t> res_map;
     groupBulkRead_->clearParam();
     for (auto& i : addresses) {
@@ -447,8 +401,9 @@ std::map<uint8_t, uint32_t> DynamixelDriver::readParams(
             RCLCPP_ERROR(this->get_logger(),
                          "[ID: %d groupBulkRead addparam failed", i);
         } else {
-            RCLCPP_INFO(this->get_logger(), "Bulk Read: Added param ID: 0x%x for code %d",
-                        i, instruction_code);
+            RCLCPP_INFO(this->get_logger(),
+                        "Bulk Read: Added param ID: 0x%x for code %d", i,
+                        instruction_code);
         }
     }
 
@@ -477,7 +432,7 @@ std::map<uint8_t, uint32_t> DynamixelDriver::readParams(
     return res_map;
 }
 void DynamixelDriver::enableTorque(std::vector<uint8_t> ids) {
-    // std::scoped_lock lock(comms_lock_);
+    std::scoped_lock lock(comms_mutex_);
 
     for (size_t i = 0; i < ids.size(); i++) {
         auto servoMap_it = servoMap_.find(ids[i]);
@@ -514,7 +469,7 @@ void DynamixelDriver::enableTorque(std::vector<uint8_t> ids) {
 }
 
 void DynamixelDriver::set_torque(std::vector<uint8_t> ids, uint8_t toggle) {
-    // std::scoped_lock lock(comms_lock_);
+    std::scoped_lock lock(comms_mutex_);
 
     for (size_t i = 0; i < ids.size(); i++) {
         auto servoMap_it = servoMap_.find(ids[i]);
@@ -648,11 +603,9 @@ void DynamixelDriver::setProfileVelocity(std::map<uint8_t, float> vel_map) {
             }
         }
     }
-    // set_torque(motorIds_, true);
 }
 
 void DynamixelDriver::setProfileAccel(std::map<uint8_t, float> accel_map) {
-    // set_torque(motorIds_, false);
     BulkParamMap map;
     std::vector<uint8_t> accel_arr(4);
     int write_result = 1;
@@ -660,8 +613,6 @@ void DynamixelDriver::setProfileAccel(std::map<uint8_t, float> accel_map) {
         // 1. update the cached values
         auto id = pair.first;
         auto accel = pair.second;
-        // auto accel = pair.second[1];
-
         if (motorMap_.find(id) != motorMap_.end()) {
             motorMap_[id].profAccel_ = accel;
         } else {
@@ -683,7 +634,6 @@ void DynamixelDriver::setProfileAccel(std::map<uint8_t, float> accel_map) {
             }
         }
     }
-    // set_torque(motorIds_, true);
 }
 
 void DynamixelDriver::setGoalVelocity(std::map<uint8_t, float> vel_map) {
@@ -724,7 +674,6 @@ void DynamixelDriver::setGoalVelocity(std::map<uint8_t, float> vel_map) {
 }
 
 void DynamixelDriver::setServoPos(std::map<uint8_t, float> pos_map) {
-    // set_torque(servoIds_, false);
     std::map<uint8_t, std::vector<uint8_t>> map;
 
     std::vector<uint8_t> pos_arr(4);
@@ -735,16 +684,8 @@ void DynamixelDriver::setServoPos(std::map<uint8_t, float> pos_map) {
 
         if (servoMap_.find(id) != servoMap_.end()) {
             servoMap_[id].goalPos_ = pos;
-
             pos_arr = degToPos(pos);
             map.insert({id, pos_arr});
-            // RCLCPP_INFO(this->get_logger(),
-            //             "Trying to set servo ID: %x to position %f",
-            //             id, pos);
-            // RCLCPP_INFO(this->get_logger(), "Pos in hex is
-            // 0x%x%x%x%x",
-            //             pos_arr[3], pos_arr[2], pos_arr[1],
-            //             pos_arr[0]);
         } else {
             RCLCPP_ERROR(this->get_logger(),
                          "Servo ID: 0x%x is not in the list of "
@@ -803,12 +744,12 @@ uint8_t DynamixelDriver::singleRead(uint8_t id, uint16_t code) {
                      "Read for ID %d of code %d resulted in an error. %s", id,
                      code, packetHandler_->getRxPacketError(dxl_error));
     } else {
-        RCLCPP_INFO(this->get_logger(), "Single Read from id %d, code %d obtained: %x",
-                    id, code, output);
+        RCLCPP_INFO(this->get_logger(),
+                    "Single Read from id %d, code %d obtained: %x", id, code,
+                    output);
     }
     return output;
 }
-
 
 void DynamixelDriver::singleRead4B(uint8_t id, uint16_t code) {
     uint32_t output = 0;

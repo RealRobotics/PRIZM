@@ -60,6 +60,7 @@ install(DIRECTORY launch
 install(PROGRAMS
   scripts/publishPos.py
   scripts/publishVel.py
+  scripts/getStatus.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -188,7 +188,7 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
                                            uint16_t instruction_code,
                                            uint16_t instruction_len);
 
-    void singleRead(uint8_t id, uint16_t code);
+    uint8_t singleRead(uint8_t id, uint16_t code);
     void singleRead4B(uint8_t id, uint16_t code);
     void singleWrite(uint8_t id, uint16_t code, uint8_t data);
     void singleWrite4B(uint8_t id, uint16_t code, uint32_t data);

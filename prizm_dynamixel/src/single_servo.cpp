@@ -47,7 +47,7 @@ void SingleServo::set_position_callback(const DynaPos::SharedPtr msg) {
         RCLCPP_INFO(this->get_logger(), "%s",
                     packet_handler_->getRxPacketError(dxl_error));
     } else {
-        RCLCPP_INFO(this->get_logger(), "Set [ID: %d] [Goal Position: %d]",
+        RCLCPP_INFO(this->get_logger(), "Set [ID: %d] [Goal Position: %f]",
                     msg->id, msg->position);
     }
 }

@@ -3,6 +3,5 @@ uint8[] id
 ---
 prizm_interfaces/DynamixelPosArr pos_array
 prizm_interfaces/DynamixelVelArr vel_array
-## you can add other stuff here, 
-## but the waterproof servos will not be so nice, 
-## so I will not implemenet them for now
+uint8[] operating_mode
+bool[] torque_enable

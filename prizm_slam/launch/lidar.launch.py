@@ -21,13 +21,21 @@ def generate_launch_description():
             ]),
             launch_arguments={
                 'serial_port': '/dev/rplidar',
-                'use_provided_red': 'True'
             }.items()
+        ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                PathJoinSubstitution([
+                    FindPackageShare('icm20948-ros2'),
+                    'launch',
+                    'icm20948.launch.py'
+                ])
+            ])
         ),
         Node(
             package="prizm_slam",
             executable="scan_to_pc",
             name="scan_to_pc"
         )
-                
+
     ])

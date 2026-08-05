@@ -26,7 +26,7 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
-                    FindPackageShare('icm20948-ros2'),
+                    FindPackageShare('icm20948_ros2'),
                     'launch',
                     'icm20948.launch.py'
                 ])

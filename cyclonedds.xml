@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CycloneDDS xmlns="https://cyclonedds.org/schema/dds/1.0">
+    <Domain>
     <Discovery>
         <ParticipantIndex>auto</ParticipantIndex>
         <Peers>
@@ -12,4 +13,5 @@
             <WhcLow>512KB</WhcLow>
         </Watermarks>
     </Internal>
+    </Domain>
 </CycloneDDS>

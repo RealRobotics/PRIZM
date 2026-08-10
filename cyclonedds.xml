@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CycloneDDS xmlns="https://cyclonedds.org/schema/dds/1.0">
+    <Discovery>
+        <ParticipantIndex>auto</ParticipantIndex>
+        <Peers>
+            <Peer Address="localhost"/>
+        </Peers>
+    </Discovery>
+    <Internal>
+        <Watermarks>
+            <WhcHigh>1MB</WhcHigh>
+            <WhcLow>512KB</WhcLow>
+        </Watermarks>
+    </Internal>
+</CycloneDDS>

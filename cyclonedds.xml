@@ -3,7 +3,7 @@
     <Domain>
         <General>
             <Interfaces>
-                <NetworkInterface autodetermine="true" priority="default" multicast="true" />
+                <NetworkInterface autodetermine="true" priority="default" multicast="true" address=172.17.0.1/>
             </Interfaces>
             <AllowMulticast>true</AllowMulticast>
             <MaxMessageSize>65500B</MaxMessageSize>

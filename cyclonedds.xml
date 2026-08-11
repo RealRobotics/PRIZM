@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CycloneDDS xmlns="https://cyclonedds.org/schema/dds/1.0">
     <Domain>
-    <General>
-      <AllowMulticast>true</AllowMulticast>
-    </General>
-    <Discovery>
-        <ParticipantIndex>auto</ParticipantIndex>
-        <Peers>
-            <Peer Address="localhost"/>
-        </Peers>
-    </Discovery>
+        <General>
+            <Interfaces>
+                <NetworkInterface autodetermine="true" priority="default" multicast="true" />
+            </Interfaces>
+            <AllowMulticast>true</AllowMulticast>
+            <MaxMessageSize>65500B</MaxMessageSize>
+        </General>
+        <Discovery>
+            <ParticipantIndex>auto</ParticipantIndex>
+            <Peers>
+                <Peer Address="localhost"/>
+            </Peers>
+            <EnableTopicDiscoveryEndpoints>true</EnableTopicDiscoveryEndpoints>
+        </Discovery>
     </Domain>
 </CycloneDDS>

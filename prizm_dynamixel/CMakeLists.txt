@@ -7,6 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(dynamixel_sdk REQUIRED)
 find_package(prizm_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -57,10 +58,13 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 
+ament_python_install_package(${PROJECT_NAME})
+
 install(PROGRAMS
   scripts/publishPos.py
   scripts/publishVel.py
   scripts/getStatus.py
+  scripts/calibrateServo.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -3,7 +3,6 @@
 import rclpy
 from rclpy.node import Node
 
-
 from prizm_interfaces.msg import DynamixelPosArr
 from prizm_interfaces.msg import DynamixelPos
 

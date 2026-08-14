@@ -2,9 +2,9 @@
 <CycloneDDS xmlns="https://cyclonedds.org/schema/dds/1.0">
     <Domain>
         <General>
-            <Interfaces>
+            <!-- <Interfaces>
                 <NetworkInterface autodetermine="true" priority="default" multicast="true" address=172.17.0.1/>
-            </Interfaces>
+            </Interfaces> -->
             <AllowMulticast>true</AllowMulticast>
             <MaxMessageSize>65500B</MaxMessageSize>
         </General>

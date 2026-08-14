@@ -1,3 +1,5 @@
+from sys import executable
+
 from launch_ros.substitutions import FindPackageShare
 
 from launch import LaunchDescription
@@ -36,6 +38,11 @@ def generate_launch_description():
             package="prizm_slam",
             executable="scan_to_pc",
             name="scan_to_pc"
+        ),
+        Node(
+            package="prizm_slam",
+            executable="transformBroadcaster.py",
+            name="transform_broadcaster"
         )
 
     ])

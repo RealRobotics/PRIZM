@@ -24,6 +24,10 @@ LaserScanToPointCloud::LaserScanToPointCloud(std::string& nodeName,
 void LaserScanToPointCloud::scanCallback_(
     const sensor_msgs::msg::LaserScan& scan_in) {
     projector_.projectLaser(scan_in, pointCloud_);
+    pointCloud_.header.stamp =
+        scan_in.header.stamp +
+        rclcpp::Duration::from_seconds(scan_in.ranges.size() *
+                                        scan_in.time_increment);
     pointCloudPub_->publish(pointCloud_);
 }
 

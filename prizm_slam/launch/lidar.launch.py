@@ -64,4 +64,13 @@ def generate_launch_description():
                 '0', '--frame-id', 'map', '--child-frame-id', 'imu']
         ),
 
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            arguments=[
+                '--x', '0', '--y', '0', '--z', '0',
+                '--yaw', '0', '--pitch', '0', '--roll',
+                '0', '--frame-id', 'laser', '--child-frame-id', 'imu']
+        ),
+
     ])

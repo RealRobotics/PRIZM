@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 
+from numpy import source
+
 import rclpy
 from rclpy.node import Node
 
 from prizm_interfaces.msg import DynamixelPos, DynamixelPosArr
+import rclpy.time
 from sensor_msgs.msg import Joy
 
+import yaml, datetime
+from pathlib import Path
 
 class CalibrateServo(Node):
 
@@ -98,6 +103,26 @@ class CalibrateServo(Node):
         if (buttons[10] == 1):
             self.savePosition()
 
+    def dump_info(self):
+        now = str(datetime.datetime.now())
+        output_data = {
+            "servo_config" : {
+                {"date": now},
+                {"id" : self.servo_id},
+                {"max" : self.max_pos},
+                {"min" : self.min_pos},
+                {"zero" : self.zero_pos},
+            }
+        }
+        # with open()
+        # source_path = Path(__file__).resolve()
+        # source_dir = source_path.parent
+        # path = source_dir.replace("")
+        # with open()
+        path = "~/prizm/ros2_ws/PRIZM/prizm_dynamixel/config/"
+        filename = "calibration_" + now + ".yaml"
+        with open(path+filename, 'w') as outfile:
+            yaml.dump(output_data, outfile, default_flow_style=False)
 
 def main(args=None):
     rclpy.init(args=args)

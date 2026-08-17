@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from time import strptime
+
 from numpy import source
 
 import rclpy
@@ -103,6 +105,8 @@ class CalibrateServo(Node):
         if (buttons[10] == 1):
             self.savePosition()
 
+        self.updatePos(self.curr_pos)
+
     def dump_info(self):
         now = str(datetime.datetime.now())
         output_data = {
@@ -114,13 +118,8 @@ class CalibrateServo(Node):
                 {"zero" : self.zero_pos},
             }
         }
-        # with open()
-        # source_path = Path(__file__).resolve()
-        # source_dir = source_path.parent
-        # path = source_dir.replace("")
-        # with open()
-        path = "~/prizm/ros2_ws/PRIZM/prizm_dynamixel/config/"
-        filename = "calibration_" + now + ".yaml"
+        path = "src/PRIZM/prizm_dynamixel/config/"
+        filename = "calibration_" + strptime(now, "%Y%m%d_%H%M%S") + ".yaml"
         with open(path+filename, 'w') as outfile:
             yaml.dump(output_data, outfile, default_flow_style=False)
 

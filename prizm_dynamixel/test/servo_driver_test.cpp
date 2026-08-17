@@ -75,6 +75,25 @@ TEST_F(TestMotorDriver, InitMotors) {
     // ASSERT_EQ(node_->motorMap_[0x09], 0x09);
 }
 
+TEST_F(TestMotorDriver, SetServoLimits){
+    auto servo_it1 = node_->servoMap_.find(0x00);
+    auto servo_it2 = node_->servoMap_.find(0x01);
+    auto servo_it3 = node_->servoMap_.find(0x02);
+
+    ASSERT_EQ(servo_it1->second.servoMin, -300);
+    ASSERT_EQ(servo_it2->second.servoMin, -300);
+    ASSERT_EQ(servo_it3->second.servoMin, 290);
+
+    ASSERT_EQ(servo_it1->second.servoMax, 4093);
+    ASSERT_EQ(servo_it2->second.servoMax, -200);
+    ASSERT_EQ(servo_it3->second.servoMax, 40000);
+
+    ASSERT_EQ(servo_it1->second.servoZero, 0);
+    ASSERT_EQ(servo_it2->second.servoZero, 10);
+    ASSERT_EQ(servo_it3->second.servoZero, -10);
+
+}
+
 // TEST_F(TestMotorDriver, InitServoMismatch) { FAIL(); }
 // TEST_F(TestMotorDriver, InitMotorsMismatch) { FAIL(); }
 

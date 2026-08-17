@@ -20,13 +20,28 @@ DynamixelDriver::DynamixelDriver(std::string& nodeName,
 
     auto servo_parameter_map = std::map<std::string, int>{
         {"num_servos", 1},
-        {"servo_min", 0},
-        {"servo_max", 360},
     };
+
     this->declare_parameters(paramNamespace_, servo_parameter_map);
     numServos_ = this->get_parameter(paramNamespace_ + ".num_servos").as_int();
-    servoMin_ = this->get_parameter(paramNamespace_ + ".servo_min").as_int();
-    servoMax_ = this->get_parameter(paramNamespace_ + ".servo_max").as_int();
+    // servoMin_ = this->get_parameter(paramNamespace_ + ".servo_min").as_int();
+    // servoMax_ = this->get_parameter(paramNamespace_ + ".servo_max").as_int();
+
+    // this->declare_parameter(paramNamespace_ + ".servoMins",
+    // std::vector<int64_t>());
+    auto servo_limits_map = std::map<std::string, std::vector<int64_t>>{
+        {"servo_mins", std::vector<int64_t>()},
+        {"servo_maxs", std::vector<int64_t>()},
+        {"servo_zeros", std::vector<int64_t>()},
+    };
+
+    this->declare_parameters(paramNamespace_, servo_limits_map);
+    servoMins_ =
+        this->get_parameter(paramNamespace_ + ".servo_mins").as_integer_array();
+    servoMaxs_ =
+        this->get_parameter(paramNamespace_ + ".servo_maxs").as_integer_array();
+    servoZeros_ = this->get_parameter(paramNamespace_ + ".servo_zeros")
+                      .as_integer_array();
 
     auto motor_parameter_map = std::map<std::string, int>{
         {"num_motors", 1},
@@ -81,10 +96,23 @@ void DynamixelDriver::InitMotors() {
                 "Mismatch in number of servos: %d and number of servo ids: %d",
                 numServos_, (int)servoIdsINT_.size());
             throw std::runtime_error("ServoNumMismatch");
+        } else if (numServos_ != (int)servoMins_.size() ||
+                   numServos_ != (int)servoMaxs_.size() ||
+                   numServos_ != (int)servoZeros_.size()) {
+            RCLCPP_ERROR(this->get_logger(),
+                         "Mismatch in number of servos: %d and number of "
+                         "limits: Min %d Max %d Zero %d",
+                         numServos_, (int)servoMins_.size(),
+                         (int)servoMaxs_.size(), (int)servoZeros_.size());
+            throw std::runtime_error("ServoLimitsNumMismatch");
         } else {
             dynamixelData servo_default;
-            servo_default.operatingMode_ = OperatingModes::POSITION_CONTROL;
+            servo_default.operatingMode_ =
+                OperatingModes::EXTENDED_POSITION_CONTROL;
             for (int i = 0; i < numServos_; i++) {
+                servo_default.servoMin = servoMins_.at(i);
+                servo_default.servoMax = servoMaxs_.at(i);
+                servo_default.servoZero = servoZeros_.at(i);
                 servoMap_.insert({{servoIdsINT_[i], servo_default}});
                 op_mode_map.insert(
                     {servoIdsINT_[i], servo_default.operatingMode_});
@@ -192,12 +220,14 @@ void DynamixelDriver::InitServices() {
                   std::placeholders::_1, std::placeholders::_2));
 
     getStatusSrv_ = this->create_service<DynaGetStatus>(
-        paramNamespace_ + "/get_status", std::bind(&DynamixelDriver::getStatusCB_, this,
-                                std::placeholders::_1, std::placeholders::_2));
+        paramNamespace_ + "/get_status",
+        std::bind(&DynamixelDriver::getStatusCB_, this, std::placeholders::_1,
+                  std::placeholders::_2));
 
     setTorqueSrv_ = this->create_service<SetBool>(
-        paramNamespace_ + "/set_torque", std::bind(&DynamixelDriver::setTorqueCB_, this,
-                                std::placeholders::_1, std::placeholders::_2));
+        paramNamespace_ + "/set_torque",
+        std::bind(&DynamixelDriver::setTorqueCB_, this, std::placeholders::_1,
+                  std::placeholders::_2));
 }
 
 void DynamixelDriver::readMotorID() {
@@ -256,8 +286,19 @@ void DynamixelDriver::servoPosGoalCB_(const DynaPosArr& msg) {
                              msg.pos_array[i].id);
                 throw std::runtime_error("ServoIDMismatch");
             } else {
-                find_it->second.goalPos_ = msg.pos_array[i].position;
-                goal_map.insert({find_it->first, find_it->second.goalPos_});
+                if (msg.pos_array[i].position > find_it->second.servoMax ||
+                    msg.pos_array[i].position < find_it->second.servoMin) {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "Requested position %f for servo id %d, which "
+                                 "is outside of bounds Min %f Max %f",
+                                 msg.pos_array[i].position, msg.pos_array[i].id,
+                                 find_it->second.servoMin,
+                                 find_it->second.servoMax);
+                    continue;
+                } else {
+                    find_it->second.goalPos_ = msg.pos_array[i].position;
+                    goal_map.insert({find_it->first, find_it->second.goalPos_});
+                }
             }
 
         } catch (const std::exception& e) {

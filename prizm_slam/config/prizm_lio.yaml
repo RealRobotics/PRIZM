@@ -1,0 +1,6 @@
+imu_topic: /imu/data_raw
+lidar_topic: /point_cloud
+base_frame: base
+deskew: False
+rviz: True
+publish_local_map: True

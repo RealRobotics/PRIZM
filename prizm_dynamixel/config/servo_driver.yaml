@@ -13,7 +13,16 @@ driver:
     motor_driver.profile_velocity: 30.0
 
     motor_driver.profile_acceleration: 15.0
+  
+    motor_driver.servo_mins:
+      - -300
 
-    motor_driver.debug: false
+    motor_driver.servo_zeros:
+    - 0
+
+    motor_driver.servo_maxs:
+    - 4093
+
+    motor_driver.debug: true
     # servo_min: 0
     # servo_max: 360

@@ -189,12 +189,13 @@ class DynamixelDriver : public DynamixelMotor, public rclcpp::Node {
 
     std::string address = "/dev/ttyUSBX";
     std::string paramNamespace_ = "motor_driver";
-    int numServos_, servoMin_, servoMax_;
+    int numServos_;
     int numMotors_, speedMin_, speedMax_;
 
     dynamixelMap servoMap_, motorMap_;
 
-    std::vector<int64_t> motorIdsINT_, servoIdsINT_;
+    std::vector<int64_t> motorIdsINT_, servoIdsINT_, servoMins_, servoMaxs_,
+        servoZeros_;
 
     std::vector<uint8_t> allIds_, motorIds_, servoIds_;
     DynamixelDriver();

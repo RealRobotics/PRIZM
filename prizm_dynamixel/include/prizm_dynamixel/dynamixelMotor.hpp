@@ -40,6 +40,9 @@ struct dynamixelData {
     float goalAccel_ = 0.f;
     float profVel_ = 0.f;
     float profAccel_ = 0.f;
+    float servoMin = 0.f;
+    float servoMax = 0.f;
+    float servoZero = 0.f;
 
     std::string motorModel_;
 };

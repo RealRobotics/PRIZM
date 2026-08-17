@@ -15,7 +15,7 @@ class GetStatus(Node):
         super().__init__("getStatus")
         # self.publisher = self.create_publisher(DynamixelPosArr, "servo_pos", 10)
         self.service_caller = self.create_client(
-            DynamixelGetStatus, "get_status")
+            DynamixelGetStatus, "/motor_driver/get_status")
         self.ids = 0
         while not self.service_caller.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
@@ -56,7 +56,7 @@ def main(args=None):
 
     getStatus = GetStatus()
 
-    ids = [0, 1]
+    ids = [0]
 
     response = getStatus.call_service(ids)
     getStatus.print_results(response)

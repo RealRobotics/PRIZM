@@ -10,7 +10,7 @@ from prizm_interfaces.msg import DynamixelVel
 class PosArrPub(Node):
     def __init__(self):
         super().__init__("pos_arr_pub")
-        self.publisher = self.create_publisher(DynamixelVelArr, "motor_vel", 10)
+        self.publisher = self.create_publisher(DynamixelVelArr, "/motor_driver/motor_vel", 10)
 
     def publish_positions(self, ids: list, values: list):
         pos_arr = DynamixelVelArr()

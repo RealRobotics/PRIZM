@@ -305,7 +305,7 @@ void DynamixelDriver::servoPosGoalCB_(const DynaPosArr& msg) {
             std::cerr << e.what() << '\n';
         }
     }
-    if (!debug) setServoPos(goal_map);
+    setServoPos(goal_map);
 }
 
 void DynamixelDriver::motorVelGoalCB_(const DynaVelArr& msg) {
@@ -333,8 +333,8 @@ void DynamixelDriver::motorVelGoalCB_(const DynaVelArr& msg) {
             std::cerr << e.what() << '\n';
         }
     }
-    singleRead4B(0x00, GOAL_VEL_ADDR);
-    singleRead4B(0x01, GOAL_VEL_ADDR);
+    // singleRead4B(0x00, GOAL_VEL_ADDR);
+    // singleRead4B(0x01, GOAL_VEL_ADDR);
 }
 
 void DynamixelDriver::setProfVelSrvCB_(
@@ -366,17 +366,38 @@ void DynamixelDriver::getStatusCB_(const DynaGetStatus::Request::SharedPtr req,
     res->operating_mode.resize(num_ids);
     res->torque_enable.resize(num_ids);
     // res->toggle.resize(num_ids);
-    auto positions = getPos(req->id);
-    auto velocities = getVel(req->id);
 
-    for (int i = 0; i < num_ids; i++) {
-        pos_arr.pos_array[i].id = req->id[i];
-        pos_arr.pos_array[i].position = positions[req->id[i]];
+    if (!debug) {
+        auto positions = getPos(req->id);
+        auto velocities = getVel(req->id);
 
-        vel_arr.vel_array[i].id = req->id[i];
-        vel_arr.vel_array[i].velocity = velocities[req->id[i]];
-        res->operating_mode[i] = singleRead(req->id[i], OP_MODE_ADDR);
-        res->torque_enable[i] = singleRead(req->id[i], TORQUE_ENABLE_ADDR);
+        for (int i = 0; i < num_ids; i++) {
+            pos_arr.pos_array[i].id = req->id[i];
+            pos_arr.pos_array[i].position = positions[req->id[i]];
+
+            vel_arr.vel_array[i].id = req->id[i];
+            vel_arr.vel_array[i].velocity = velocities[req->id[i]];
+            res->operating_mode[i] = singleRead(req->id[i], OP_MODE_ADDR);
+            res->torque_enable[i] = singleRead(req->id[i], TORQUE_ENABLE_ADDR);
+        }
+    } else {
+        for (int i = 0; i < num_ids; i++) {
+            auto servo_it = servoMap_.find(req->id[i]);
+            auto motor_it = motorMap_.find(req->id[i]);
+
+            if(servo_it != servoMap_.end()) {
+                pos_arr.pos_array[i].id = req->id[i];
+                pos_arr.pos_array[i].position = servo_it->second.currentPos_;
+                res->operating_mode[i] = servo_it->second.operatingMode_;
+                res->torque_enable[i] = servo_it->second.torqueEnable_;
+            }
+            if(motor_it != motorMap_.end()){
+                vel_arr.vel_array[i].id = req->id[i];
+                vel_arr.vel_array[i].velocity = motor_it->second.currentVel_;
+                res->operating_mode[i] = motor_it->second.operatingMode_;
+                res->operating_mode[i] = motor_it->second.torqueEnable_;
+            }
+        }
     }
     res->pos_array = pos_arr;
     res->vel_array = vel_arr;
@@ -745,8 +766,8 @@ void DynamixelDriver::setServoPos(std::map<uint8_t, float> pos_map) {
                 servoMap_[id].currentPos_ = pos;
             }
         }
-        singleRead4B(0x00, 132);
-        singleRead4B(0x01, 132);
+        // singleRead4B(0x00, 132);
+        // singleRead4B(0x01, 132);
     } else {
         RCLCPP_ERROR(this->get_logger(),
                      "Something went wrong with teh write params. Could not "

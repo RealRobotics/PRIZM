@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
 from time import strptime
-
+import time
 from numpy import source
 
 import rclpy
 from rclpy.node import Node
 
 from prizm_interfaces.msg import DynamixelPos, DynamixelPosArr
-import rclpy.time
 from sensor_msgs.msg import Joy
 
-import yaml, datetime
+import yaml
+import datetime
 from pathlib import Path
+
 
 class CalibrateServo(Node):
 
@@ -23,8 +24,9 @@ class CalibrateServo(Node):
     def __init__(self):
         super().__init__("CalibrateServo")
         self.publish_pos = self.create_publisher(
-            DynamixelPosArr, "servo_pos", 10)
-        # self.joy_subscriber = self.create_subscription(Joy, "joy_input", self.joyCallack, 10)
+            DynamixelPosArr, "/motor_driver/servo_pos", 10)
+        self.joy_subscriber = self.create_subscription(
+            Joy, "joy", self.joyCallack, 10)
 
         self.declare_parameter("servo_id", 0)
         self.declare_parameter(
@@ -42,6 +44,19 @@ class CalibrateServo(Node):
         self.save_max = True
         self.save_zero = False
         self.save_min = False
+
+        self.get_logger().info("Quick dynamixel servo calibration utility")
+        self.get_logger().info("Controls:")
+        self.get_logger().info("A (X on PS): +1")
+        self.get_logger().info("B (Circle on PS): +5")
+        self.get_logger().info("X (Square on PS): +10")
+        self.get_logger().info("Y (Triangle on PS): +20")
+        self.get_logger().info("B (L1 on PS): Reverse Direction")
+        self.get_logger().info("RB (R1 on PS): Save Position")
+        self.get_logger().info("R3: Quit program")
+        self.get_logger().info("Once all positions (max, zero, min. In that order) have been "
+                    "saved, the next R1/RB press will dump them to a yaml in the "
+                    "prizm_dynamixel config folder.")
 
     def initPos(self):
         # self.get_logger().info(f"Initialising position for id {self.servo_id}")
@@ -70,15 +85,22 @@ class CalibrateServo(Node):
             self.save_max = False
             self.save_zero = True
             self.save_min = False
+            self.get_logger().info(f"Got max pos: {self.max_pos}")
 
-        if (self.save_zero and not self.save_max and not self.save_min):
+        elif (self.save_zero and not self.save_max and not self.save_min):
             self.zero_pos = self.curr_pos
             self.save_zero = False
             self.save_min = True
+            self.get_logger().info(f"Got zero pos: {self.zero_pos}")
 
-        if (self.save_min and not self.save_zero and not self.save_max):
+        elif (self.save_min and not self.save_zero and not self.save_max):
             self.min_pos = self.curr_pos
             self.save_min = False
+            self.get_logger().info(f"Got min pos: {self.min_pos}")
+
+        else:
+            self.get_logger().info("Got all positions, saving now")
+            self.dump_info()
 
     def joyCallack(self, msg: Joy):
         # look here for the schema
@@ -89,6 +111,7 @@ class CalibrateServo(Node):
         # idx 1: B (Circle on PS): +5
         # idx 2: X (Square on PS): +10
         # idx 3: Y (Triangle on PS): +20
+        # idx 8: R3: Quit program
         # idx 9: LB (L1 on PS): Reverse Direction
         # idx 10: RB (R1 on PS): Save Position
         buttons = msg.buttons
@@ -105,31 +128,39 @@ class CalibrateServo(Node):
         if (buttons[10] == 1):
             self.savePosition()
 
+        if (buttons[8] == 1):
+            rclpy.shutdown()
+
         self.updatePos(self.curr_pos)
 
     def dump_info(self):
-        now = str(datetime.datetime.now())
+        self.get_logger().info(
+            f"Dumping data. id: {self.servo_id}, max: {self.max_pos}, min: {self.min_pos}, zero: {self.zero_pos}")
+        now = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S")
         output_data = {
-            "servo_config" : {
-                {"date": now},
-                {"id" : self.servo_id},
-                {"max" : self.max_pos},
-                {"min" : self.min_pos},
-                {"zero" : self.zero_pos},
+            "servo_config": {
+                "date": now,
+                "id": self.servo_id,
+                "max": self.max_pos,
+                "min": self.min_pos,
+                "zero": self.zero_pos,
             }
         }
         path = "src/PRIZM/prizm_dynamixel/config/"
-        filename = "calibration_" + strptime(now, "%Y%m%d_%H%M%S") + ".yaml"
+        filename = "calibration_" + now + ".yaml"
         with open(path+filename, 'w') as outfile:
             yaml.dump(output_data, outfile, default_flow_style=False)
+        rclpy.shutdown()
+
 
 def main(args=None):
+
     rclpy.init(args=args)
+    
     calibrate_servo = CalibrateServo()
     calibrate_servo.initPos()
 
     rclpy.spin(calibrate_servo)
-
     rclpy.shutdown()
 
 

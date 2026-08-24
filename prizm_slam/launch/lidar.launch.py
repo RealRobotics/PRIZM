@@ -1,5 +1,5 @@
 from sys import executable
-
+import numpy as np
 from launch_ros.substitutions import FindPackageShare
 
 from launch import LaunchDescription
@@ -51,26 +51,26 @@ def generate_launch_description():
             package='tf2_ros',
             executable='static_transform_publisher',
             arguments=[
-                '--x', '0', '--y', '0', '--z', '0',
+                '--x', '0', '--y', '0', '--z', '0.08',
                 '--yaw', '0', '--pitch', '0', '--roll',
-                '0', '--frame-id', 'map', '--child-frame-id', 'laser']
+                '3.1415', '--frame-id', 'map', '--child-frame-id', 'laser']
         ),
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
             arguments=[
-                '--x', '0', '--y', '0', '--z', '0',
-                '--yaw', '0', '--pitch', '0', '--roll',
-                '0', '--frame-id', 'map', '--child-frame-id', 'imu']
+                '--x', '-0.01', '--y', '0.0', '--z', '0.03',
+                '--yaw', '3.14', '--pitch', '1.57', '--roll',
+                '3.14', '--frame-id', 'map', '--child-frame-id', 'imu']
         ),
 
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            arguments=[
-                '--x', '0', '--y', '0', '--z', '0',
-                '--yaw', '0', '--pitch', '0', '--roll',
-                '0', '--frame-id', 'laser', '--child-frame-id', 'imu']
-        ),
+        # Node(
+        #     package='tf2_ros',
+        #     executable='static_transform_publisher',
+        #     arguments=[
+        #         '--x', '0', '--y', '0', '--z', '0',
+        #         '--yaw', '0', '--pitch', '0', '--roll',
+        #         '0', '--frame-id', 'laser', '--child-frame-id', 'imu']
+        # ),
 
     ])

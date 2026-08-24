@@ -4,12 +4,12 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
 class LaserScanToPointCloud : public rclcpp::Node {
-   private:
+private:
     std::string nodeName_, laser_topic, point_cloud_topic;
     sensor_msgs::msg::PointCloud2 pointCloud_;
     laser_geometry::LaserProjection projector_;
 
-   public:
+public:
     LaserScanToPointCloud();
     LaserScanToPointCloud(std::string& nodeName, rclcpp::NodeOptions& options);
 

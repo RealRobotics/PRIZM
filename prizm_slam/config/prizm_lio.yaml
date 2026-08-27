@@ -4,7 +4,7 @@ base_frame: map
 deskew: True
 rviz: True
 publish_local_map: True
-min_range: 0.01
+min_range: 0.1
 max_range: 16.0
 max_num_threads: 0
 voxel_size: 0.1

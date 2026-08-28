@@ -1,15 +1,16 @@
 imu_topic: /imu/data_raw
 lidar_topic: /point_cloud
 base_frame: map
-deskew: True
-rviz: True
-publish_local_map: True
-min_range: 0.1
-max_range: 16.0
+deskew: true
+rviz: true
+publish_local_map: true
+min_range: 0.05
+max_range: 10.0
 max_num_threads: 0
 voxel_size: 0.1
-double_downsample: False
-timestamps:
-  multiplier_to_seconds: 0.0
-  force_absolute: true
-  force_relative: false
+double_downsample: true
+# timestamps:
+# lts_multiplier_to_seconds: 1000.0
+lts_force_absolute: false
+# force_absolute: false
+lts_force_relative: true

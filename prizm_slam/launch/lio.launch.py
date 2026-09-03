@@ -23,7 +23,9 @@ def generate_launch_description():
                 ])
             ]),
             launch_arguments={
-                'config_file' : 'src/PRIZM/prizm_slam/config/prizm_lio.yaml'
+                'config_file' : 'src/PRIZM/prizm_slam/config/prizm_lio.yaml',
+                'rviz': 'true',
+                'rviz_config_file': 'src/PRIZM/prizm_slam/config/lio_rviz.rviz'
             }.items()
         ),
     ])

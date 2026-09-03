@@ -26,7 +26,7 @@ def generate_launch_description():
             executable='static_transform_publisher',
             arguments=[
                 '--x', '0', '--y', '0', '--z', '0.08',
-                '--yaw', '0', '--pitch', '0', '--roll',
+                '--yaw', '0', '--pitch', '1.57', '--roll',
                 '-3.1415', '--frame-id', 'map', '--child-frame-id', 'laser']
         ),
         Node(
@@ -34,8 +34,8 @@ def generate_launch_description():
             executable='static_transform_publisher',
             arguments=[
                 '--x', '-0.01', '--y', '0.0', '--z', '0.03',
-                '--roll', '1.57', '--pitch', '0', '--yaw',
-                '-1.57', '--frame-id', 'map', '--child-frame-id', 'imu']
+                '--roll', '0', '--pitch', '0', '--yaw',
+                '0', '--frame-id', 'map', '--child-frame-id', 'imu']
         ),
 
 

@@ -16,23 +16,28 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
-                    FindPackageShare('rplidar_ros'),
+                    FindPackageShare('sllidar_ros2'),
                     'launch',
-                    'rplidar_c1_launch.py'
+                    'sllidar_c1_launch.py'
                 ])
             ]),
             launch_arguments={
                 'serial_port': '/dev/rplidar',
             }.items()
         ),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([
-                PathJoinSubstitution([
-                    FindPackageShare('icm20948_ros2'),
-                    'launch',
-                    'icm20948.launch.py'
-                ])
-            ])
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource([
+        #         PathJoinSubstitution([
+        #             FindPackageShare('icm20948_ros2'),
+        #             'launch',
+        #             'icm20948.launch.py'
+        #         ])
+        #     ])
+        # ),
+        Node(
+            package="lsm6dsox-ros2",
+            executable="imu_node",
+            name="lsm6dsox_imu"
         ),
         Node(
             package="prizm_slam",

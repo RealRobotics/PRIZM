@@ -13,3 +13,4 @@ double_downsample: false
 lts_force_absolute: false
 lts_force_relative: true
 initialization_phase: true
+invert_odom_tf: true

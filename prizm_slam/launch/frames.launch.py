@@ -19,15 +19,31 @@ def generate_launch_description():
             arguments=[
                 '--x', '0', '--y', '0', '--z', '0',
                 '--yaw', '0', '--pitch', '0', '--roll',
-                '0', '--frame-id', 'world', '--child-frame-id', 'map']
+                '0', '--frame-id', 'world', '--child-frame-id', 'robot']
         ),
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            arguments=[
+                '--x', '0', '--y', '0', '--z', '0',
+                '--yaw', '0', '--pitch', '0', '--roll',
+                '0', '--frame-id', 'robot', '--child-frame-id', 'odom']
+        ),
+        # Node(
+        #     package='tf2_ros',
+        #     executable='static_transform_publisher',
+        #     arguments=[
+        #         '--x', '0', '--y', '0', '--z', '0',
+        #         '--yaw', '0', '--pitch', '0', '--roll',
+        #         '0', '--frame-id', 'world', '--child-frame-id', 'odom']
+        # ),
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
             arguments=[
                 '--x', '0.065', '--y', '0', '--z', '0.07',
                 '--yaw', '0', '--pitch', '1.57', '--roll',
-                '-3.1415', '--frame-id', 'map', '--child-frame-id', 'laser']
+                '-3.1415', '--frame-id', 'robot', '--child-frame-id', 'laser']
         ),
         # Node(
         #     package='tf2_ros',
@@ -51,7 +67,7 @@ def generate_launch_description():
             arguments=[
                 '--x', '0', '--y', '0.0', '--z', '0.045',
                 '--roll', '0', '--pitch', '0', '--yaw',
-                '-1.57', '--frame-id', 'map', '--child-frame-id', 'imu']
+                '0', '--frame-id', 'robot', '--child-frame-id', 'imu']
         ),
 
 

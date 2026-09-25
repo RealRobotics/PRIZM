@@ -1,6 +1,6 @@
 imu_topic: /imu/data_raw
 lidar_topic: /point_cloud
-base_frame: map
+base_frame: robot
 deskew: true
 publish_local_map: true
 publish_deskewed_scan: true
@@ -13,4 +13,4 @@ double_downsample: false
 lts_force_absolute: false
 lts_force_relative: true
 initialization_phase: true
-bag_path: src/PRIZM/bags/rosbag2_2026_09_03-11_10_33
+bag_path: src/PRIZM/bags/2026_09_24_StraightPipe_1

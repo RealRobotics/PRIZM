@@ -3,7 +3,7 @@ from sys import executable
 from launch_ros.substitutions import FindPackageShare
 
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, ExecuteProcess
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import PathJoinSubstitution, TextSubstitution
 from launch_ros.actions import Node
@@ -36,4 +36,8 @@ def generate_launch_description():
                 'rviz_config_file': 'src/PRIZM/prizm_slam/config/lio_rviz.rviz'
             }.items()
         ),
+        ExecuteProcess(
+            cmd=['ros2', 'bag', 'play', 'src/PRIZM/bags/2026_09_24_StraightPipe_1/', '--exclude-topics', '/tf_static'],
+            output='screen'
+        )
     ])

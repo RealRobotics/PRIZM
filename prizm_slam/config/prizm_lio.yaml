@@ -1,16 +1,21 @@
 imu_topic: /imu/data_raw
 lidar_topic: /point_cloud
-base_frame: map
+imu_frame: imu
+lidar_frame: laser
+base_frame: base_link
 deskew: true
 publish_local_map: true
 publish_deskewed_scan: true
-min_range: 0.01
-max_range: 10.0
+min_range: 0.00
+max_range: 2.0
 max_num_threads: 0
-voxel_size: 0.1
+voxel_size: 0.05
+# max_correspondence_distance: 0.01
+min_beta: 200.0
 double_downsample: false
 # timestamps:
 lts_force_absolute: false
 lts_force_relative: true
 initialization_phase: true
-invert_odom_tf: true
+invert_odom_tf: false
+publish_closure_maps: true

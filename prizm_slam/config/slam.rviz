@@ -4,10 +4,18 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /TF1
-        - /KeyposeGraph1
+        - /Status1
+        - /TF1/Status1
+        - /TF1/Frames1
+        - /TF1/Tree1
+        - /DeskewedScan1
       Splitter Ratio: 0.5
-    Tree Height: 363
+    Tree Height: 685
+  - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
   - Class: rviz_common/Views
     Expanded:
       - /Current View1
@@ -41,27 +49,31 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        base_link:
+          Value: true
         imu:
           Value: true
         laser:
           Value: true
         map:
           Value: true
+        odom:
+          Value: true
         world:
           Value: true
-      Marker Scale: 1
+      Marker Scale: 0.10000000149011612
       Name: TF
       Show Arrows: false
       Show Axes: true
       Show Names: true
       Tree:
         map:
-          imu:
-            {}
-          laser:
-            {}
-        world:
-          {}
+          odom:
+            base_link:
+              imu:
+                {}
+              laser:
+                {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -131,7 +143,7 @@ Visualization Manager:
       Position Transformer: ""
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.15000000596046448
+      Size (m): 0.009999999776482582
       Style: Flat Squares
       Topic:
         Depth: 5
@@ -161,10 +173,10 @@ Visualization Manager:
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: OdomLocalMap
-      Position Transformer: ""
+      Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.07000000029802322
+      Size (m): 0.009999999776482582
       Style: Flat Squares
       Topic:
         Depth: 5
@@ -194,10 +206,10 @@ Visualization Manager:
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: DeskewedScan
-      Position Transformer: ""
+      Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.05000000074505806
+      Size (m): 0.009999999776482582
       Style: Flat Squares
       Topic:
         Depth: 5
@@ -223,25 +235,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 4.096466064453125
+      Distance: 0.8813930749893188
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -0.003526998683810234
+        Y: 0.0012400317937135696
+        Z: 0.0022976351901888847
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.1400005966424942
+      Pitch: 0.2947961091995239
       Target Frame: map
       Value: Orbit (rviz_default_plugins)
-      Yaw: 1.6099997758865356
+      Yaw: 0.9849951267242432
     Saved: ~
 Window Geometry:
   Displays:
@@ -249,9 +261,9 @@ Window Geometry:
   Height: 900
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000001000000000000019b0000032efc0200000002fb000000100044006900730070006c006100790073010000003b000001ec000000c700fffffffb0000000a00560069006500770073010000022d0000013c000000a000ffffff000003d70000032e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000001000000000000019b0000032efc0200000003fb000000100044006900730070006c006100790073010000003b0000032e000000c700fffffffb0000000a00560069006500770073000000022d0000013c000000a000fffffffb0000000a00560069006500770073000000029a000000cf000000a000ffffff000003d70000032e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1400
-  X: 2209
-  Y: 211
+  X: 2849
+  Y: 10

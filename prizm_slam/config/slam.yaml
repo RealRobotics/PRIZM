@@ -1,15 +1,58 @@
-imu_topic: /imu/data_raw
-lidar_topic: /point_cloud
-base_frame: map
-deskew: true
-publish_local_map: true
-publish_deskewed_scan: true
-min_range: 0.01
-max_range: 10.0
-max_num_threads: 0
-voxel_size: 0.1
-double_downsample: false
-# timestamps:
-lts_force_absolute: false
-lts_force_relative: true
-initialization_phase: true
+# PLEASE NOTE THIS FILE IS NOT USED AUTOMATICALLY BY THE LAUNCH FILE
+# it is here to show every parameter and the value it takes when you leave it alone.
+# to use it, pass it explicitly:
+#   ros2 launch rko_slam slam.launch.py config_file:=<path_to>/ros_default.yaml
+# #############################################################################
+# --- input ---
+# lidar_topic: <required>  # odometry_and_slam.launch.py sets it to rko_lio's deskewed scan and refuses it
+# base_frame: <the scan's frame>  # shared with rko_lio under odometry_and_slam.launch.py
+# odom_frame: odom  # shared with rko_lio under odometry_and_slam.launch.py
+# map_frame: map
+# invert_map_tf: false  # odometry_and_slam.launch.py sets it to rko_lio's invert_odom_tf and refuses it
+# deskew: false  # leave false when the odometry already publishes a deskewed cloud and you consume that.
+#                 odometry_and_slam.launch.py sets it false and refuses it as an argument
+# imu_topic: <unset, no IMU>  # odometry_and_slam.launch.py sets it to rko_lio's imu_topic and refuses it
+# lidar_timestamps.multiplier_to_seconds: 0.0
+# lidar_timestamps.force_absolute: false
+# lidar_timestamps.force_relative: false
+# use_sim_time: false
+#
+# --- output ---
+# results_dir: results
+# run_name: <rko_slam online, the bag directory name offline>
+# dump_results: false
+# dump_sub_maps: true
+#
+# --- sub map ---
+# voxel_size: 0.5
+# splitting_distance: 50.0
+# max_points_per_voxel: 20
+# min_range: 1.0
+# max_range: 100.0
+#
+# --- closure detection ---
+# density_map_resolution: 0.5
+# density_threshold: 0.05
+# hamming_distance_threshold: 50
+# inliers_threshold: 5
+# overlap_threshold: 0.4
+# no_of_sub_maps_to_skip: 3
+#
+# --- pose graph ---
+# rotation_info_scale: 100.0
+# closure_info_scale: 1.0
+# closure_kernel_delta: 1.0
+# gravity_info_scale: 100.0
+# max_iterations: 10
+#
+# --- rviz ---
+publish_sub_maps: false
+publish_closure_maps: true
+publish_keypose_graph: true
+#
+# --- online only ---
+# tf_lookup_timeout_ms: 80
+#
+# --- offline only ---
+# bag_path: <rosbag2 directory to process>
+# odom_tum_path: <TUM trajectory of base_frame in odom_frame, used in place of the bag's /tf>

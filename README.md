@@ -8,7 +8,8 @@ There's an accompanying docker image which can be found [here](https://github.co
 
 * [prizm_dynamixel](prizm_dynamixel) Contains a driver to run $n$ servos and $n$ motors from a dynamixel U2D2 driver board.
 * [prizm_interfaces](prizm_interfaces) Contains a collection of interfaces, currently only used by the dynamixel driver.
+* [prizm_slam](prizm_slam) Ties up an LIO and SLAM packages to carry out some basic slam.
 
+## Author
 
-# Author
 Vittorio Francescon @ University of Leeds

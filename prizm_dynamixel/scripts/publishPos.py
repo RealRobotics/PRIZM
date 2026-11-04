@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 
+from turtle import pos
+
 import rclpy
+import rclpy.duration
 from rclpy.node import Node
+import time
 
 from prizm_interfaces.msg import DynamixelPosArr
 from prizm_interfaces.msg import DynamixelPos
+import rclpy.time
 
 class PosArrPub(Node):
     def __init__(self):
@@ -30,8 +35,8 @@ def main(args=None):
     ids = [0]
     values = [69.0]
 
+    time.sleep(0.5)
     pos_arr_pub.publish_positions(ids, values)
-
 
     rclpy.shutdown()
 

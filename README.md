@@ -2,7 +2,7 @@
 
 A collection of ROS2 (Jazzy) packages being developed for the PRIZM project.
 
-There's an accompanying docker image which can be found [here](https://github.com/RealRobotics/PRIZM_docker).
+There's an accompanying docker image which can be found [in this repo](https://github.com/RealRobotics/PRIZM_docker).
 
 ## Content Summary
 

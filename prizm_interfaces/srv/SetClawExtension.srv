@@ -1,0 +1,4 @@
+prizm_interfaces/ClawExtension claw_extension
+---
+int32[] extension
+bool success

@@ -13,17 +13,15 @@ find_package(rosidl_default_generators REQUIRED)
 
 
 set(msg_files
-    "msg/DynamixelPos.msg"
-    "msg/DynamixelVel.msg"
-    "msg/DynamixelPosArr.msg"
-    "msg/DynamixelVelArr.msg"
+    "msg/ClawExtension.msg"
+    "msg/HitechAngle.msg"
 )
 
 set(srv_files
-	"srv/DynamixelGetPos.srv"
-	"srv/DynamixelGetVel.srv"
-    "srv/DynamixelSetProfVel.srv"
-    "srv/DynamixelGetStatus.srv"
+	"srv/GetClawExtension.srv"
+    "srv/GetHitechAngle.srv"
+    "srv/SetClawExtension.srv"
+    "srv/SetHitechAngle.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

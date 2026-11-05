@@ -1,7 +1,0 @@
-std_msgs/Header header
-uint8[] id
----
-prizm_interfaces/DynamixelPosArr pos_array
-prizm_interfaces/DynamixelVelArr vel_array
-uint8[] operating_mode
-bool[] torque_enable

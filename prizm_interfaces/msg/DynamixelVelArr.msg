@@ -1,2 +1,0 @@
-std_msgs/Header header
-prizm_interfaces/DynamixelVel[] vel_array

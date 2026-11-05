@@ -1,0 +1,4 @@
+uint8[] id
+---
+prizm_interfaces/HitechAngle servo_angles
+bool success

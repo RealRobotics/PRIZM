@@ -1,0 +1,4 @@
+prizm_interfaces/HitechAngle hitech_angle
+---
+int32[] angles
+bool success

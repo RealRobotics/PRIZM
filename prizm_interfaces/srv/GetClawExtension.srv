@@ -1,0 +1,4 @@
+uint8[] id
+---
+prizm_interfaces/ClawExtension claw_extension
+bool success

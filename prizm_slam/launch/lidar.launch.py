@@ -1,5 +1,5 @@
 from sys import executable
-
+import numpy as np
 from launch_ros.substitutions import FindPackageShare
 
 from launch import LaunchDescription
@@ -16,61 +16,42 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
-                    FindPackageShare('rplidar_ros'),
+                    FindPackageShare('sllidar_ros2'),
                     'launch',
-                    'rplidar_c1_launch.py'
+                    'sllidar_c1_launch.py'
                 ])
             ]),
             launch_arguments={
                 'serial_port': '/dev/rplidar',
             }.items()
         ),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([
-                PathJoinSubstitution([
-                    FindPackageShare('icm20948_ros2'),
-                    'launch',
-                    'icm20948.launch.py'
-                ])
-            ])
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource([
+        #         PathJoinSubstitution([
+        #             FindPackageShare('icm20948_ros2'),
+        #             'launch',
+        #             'icm20948.launch.py'
+        #         ])
+        #     ])
+        # ),
+        Node(
+            package="lsm6dsox-ros2",
+            executable="imu_node",
+            name="lsm6dsox_imu"
         ),
         Node(
             package="prizm_slam",
             executable="scan_to_pc",
             name="scan_to_pc"
         ),
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            arguments=[
-                '--x', '0', '--y', '0', '--z', '0',
-                '--yaw', '0', '--pitch', '0', '--roll',
-                '0', '--frame-id', 'world', '--child-frame-id', 'map']
-        ),
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            arguments=[
-                '--x', '0', '--y', '0', '--z', '0',
-                '--yaw', '0', '--pitch', '0', '--roll',
-                '0', '--frame-id', 'map', '--child-frame-id', 'laser']
-        ),
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            arguments=[
-                '--x', '0', '--y', '0', '--z', '0',
-                '--yaw', '0', '--pitch', '0', '--roll',
-                '0', '--frame-id', 'map', '--child-frame-id', 'imu']
-        ),
-
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            arguments=[
-                '--x', '0', '--y', '0', '--z', '0',
-                '--yaw', '0', '--pitch', '0', '--roll',
-                '0', '--frame-id', 'laser', '--child-frame-id', 'imu']
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                PathJoinSubstitution([
+                    FindPackageShare('prizm_slam'),
+                    'launch',
+                    'frames.launch.py'
+                ])
+            ])
         ),
 
     ])

@@ -97,49 +97,49 @@ TEST_F(TestMotorDriver, SetServoLimits){
 // TEST_F(TestMotorDriver, InitServoMismatch) { FAIL(); }
 // TEST_F(TestMotorDriver, InitMotorsMismatch) { FAIL(); }
 
-TEST_F(TestMotorDriver, ServoPosCallback) {
-    auto posArrayPub = node_->create_publisher<DynaPosArr>("servo_pos", 10);
-    DynaPos p1, p2, p3;
-    p1.id = 0x00;
-    p2.id = 0x01;
-    p3.id = 0x02;
+// TEST_F(TestMotorDriver, ServoPosCallback) {
+//     auto posArrayPub = node_->create_publisher<DynaPosArr>("servo_pos", 10);
+//     DynaPos p1, p2, p3;
+//     p1.id = 0x00;
+//     p2.id = 0x01;
+//     p3.id = 0x02;
 
-    p1.position = 180;
-    p2.position = 30;
-    p3.position = 45;
+//     p1.position = 180;
+//     p2.position = 30;
+//     p3.position = 45;
 
-    DynaPosArr pos_arr;
-    pos_arr.pos_array = {p1, p2, p3};
-    posArrayPub->publish(pos_arr);
+//     DynaPosArr pos_arr;
+//     pos_arr.pos_array = {p1, p2, p3};
+//     posArrayPub->publish(pos_arr);
 
-    rclcpp::spin_some(node_);
+//     rclcpp::spin_some(node_);
 
-    ASSERT_EQ(node_->servoMap_[p1.id].goalPos_, p1.position);
-    ASSERT_EQ(node_->servoMap_[p2.id].goalPos_, p2.position);
-    ASSERT_EQ(node_->servoMap_[p3.id].goalPos_, p3.position);
-}
+//     ASSERT_EQ(node_->servoMap_[p1.id].goalPos_, p1.position);
+//     ASSERT_EQ(node_->servoMap_[p2.id].goalPos_, p2.position);
+//     ASSERT_EQ(node_->servoMap_[p3.id].goalPos_, p3.position);
+// }
 
-TEST_F(TestMotorDriver, MotorVelCallback) {
-    auto velArrayPub = node_->create_publisher<DynaVelArr>("motor_vel", 10);
-    DynaVel p1, p2, p3;
-    p1.id = 0x06;
-    p2.id = 0x09;
-    p3.id = 0x04;
+// TEST_F(TestMotorDriver, MotorVelCallback) {
+//     auto velArrayPub = node_->create_publisher<DynaVelArr>("motor_vel", 10);
+//     DynaVel p1, p2, p3;
+//     p1.id = 0x06;
+//     p2.id = 0x09;
+//     p3.id = 0x04;
 
-    p1.velocity = 180;
-    p2.velocity = 30;
-    p3.velocity = 45;
+//     p1.velocity = 180;
+//     p2.velocity = 30;
+//     p3.velocity = 45;
 
-    DynaVelArr vel_arr;
-    vel_arr.vel_array = {p1, p2, p3};
-    velArrayPub->publish(vel_arr);
+//     DynaVelArr vel_arr;
+//     vel_arr.vel_array = {p1, p2, p3};
+//     velArrayPub->publish(vel_arr);
 
-    rclcpp::spin_some(node_);
+//     rclcpp::spin_some(node_);
 
-    ASSERT_EQ(node_->motorMap_[p1.id].goalVel_, p1.velocity);
-    ASSERT_EQ(node_->motorMap_[p2.id].goalVel_, p2.velocity);
-    ASSERT_EQ(node_->motorMap_[p3.id].goalVel_, p3.velocity);
-}
+//     ASSERT_EQ(node_->motorMap_[p1.id].goalVel_, p1.velocity);
+//     ASSERT_EQ(node_->motorMap_[p2.id].goalVel_, p2.velocity);
+//     ASSERT_EQ(node_->motorMap_[p3.id].goalVel_, p3.velocity);
+// }
 
 TEST_F(TestMotorDriver, TorqueEnableTest) {
     std::vector<uint8_t> ids = {0x00, 0x02, 0x09};

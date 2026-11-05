@@ -11,5 +11,6 @@ There's an accompanying docker image which can be found [in this repo](https://g
 * [prizm_slam](prizm_slam) Ties up an LIO and SLAM packages to carry out some basic slam.
 
 ## Author
+## Author
 
 Vittorio Francescon @ University of Leeds

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time
 import rclpy
 from rclpy.node import Node
 
@@ -28,8 +29,9 @@ def main(args=None):
     pos_arr_pub = PosArrPub()
 
     ids = [0]
-    values = [69.0]
+    values = [3000.0]
 
+    time.sleep(0.25)
     pos_arr_pub.publish_positions(ids, values)
 
 

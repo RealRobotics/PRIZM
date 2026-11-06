@@ -8,45 +8,58 @@
 // typedef prizm_interfaces::msg
 
 enum RunMode {
-    MULTI_TURN = 0, // multi quadrant mode
-    SERVO_MODE = 1, // one quadrant
-    CONTINUOUS_ROTATION = 2, // needs direction and output
-    SPEED = 3 // Experimental. needs direction and autocalcs output
+    MULTI_TURN = 0,           // multi quadrant mode
+    SERVO_MODE = 1,           // one quadrant
+    CONTINUOUS_ROTATION = 2,  // needs direction and output
+    SPEED = 3  // Experimental. needs direction and autocalcs output
 };
 
-struct hitechData{
+enum WriteTasks {
+    NEW_POSITION = e_POSITION_NEW,
+    NEW_TURN = e_TURN_NEW,
+    SERVO_MAX = e_POSITION_MAX,
+    SERVO_MIN = e_POSITION_MIN,
+    SERVO_ZERO = e_POSITION_MID,
+    NEW_SPEED = e_VELOCITY
+};
+
+struct hitechData {
     uint8_t run_mode = SERVO_MODE;
-    uint16_t currAngle = 0x00; // Range 0 -> 360. 4096 = 90deg
-    int16_t currTurn = 0x00; // 1 = 360deg
-    uint16_t currPos = 0x00; // currTurn * 360 + currAngle
-    uint16_t goalAngle = 0x00; // Range 0 -> 360. 4096 = 90deg
-    int16_t goalTurn = 0x00; // 1 = 360deg
-    uint16_t goalPos = 0x00; // currTurn * 360 + currAngle
-    uint16_t servoMin = 0x00;
-    uint16_t servoMax = 0x00;
-    uint16_t servoZero = 0x00;
+    uint16_t currAngle = 0x00;  // Range 0 -> 360. 4096 = 90deg
+    int16_t currTurn = 0x00;    // 1 = 360deg
+    uint16_t currPos = 0x00;    // currTurn * 360 + currAngle
+    uint16_t goalAngle = 0x00;  // Range 0 -> 360. 4096 = 90deg
+    int16_t goalTurn = 0x00;    // 1 = 360deg
+    uint16_t goalPos = 0x00;    // currTurn * 360 + currAngle
+    uint16_t servoMin = 0x0000;
+    uint16_t servoMax = 0x4000;
+    uint16_t servoZero = 0x2000;
 };
 
 typedef std::map<uint8_t, hitechData> hitechMap;
-
-
-uint16_t positionToHex(int pos){
-    return float(pos * 16384) / 360;
-}
 
 
 class HitechBindings : public rclcpp::Node {
    private:
     // initialisers
     void initContainers();
+    void initParameters();
 
     // setters
     void setServoPos(int id, int target_angle);
 
-    //getters
+    // getters
+
+    // helpers
+    std::vector<uint8_t> singleWriteBuilder(WriteTasks task, int id,
+                                            int target);
+    std::vector<uint8_t> doubleWriteBuilder(WriteTasks task1, WriteTasks task2,
+                                            int id, int target1, int target2);
+    int singleReadBuilder();
+    int doubleReadBuilder();
 
     // attributes
-    hitechMap servoMap_, motorMap_;
+    uint8_t canProtocol_ = 0x01;  // make this configurable
     int numServos_, numMotors_;
     std::string paramNamespace_ = "hitech_driver";
     std::vector<int64_t> servoMins_, servoMaxs_, servoZeros_;
@@ -65,7 +78,5 @@ class HitechBindings : public rclcpp::Node {
    public:
     HitechBindings() : Node("HitechBindings") {}
     HitechBindings(std::string& nodeName, rclcpp::NodeOptions& options);
-
+    hitechMap servoMap_, motorMap_;
 };
-
-int main(int argc, char* argv);

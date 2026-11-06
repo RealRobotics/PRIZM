@@ -15,17 +15,17 @@ find_package(std_srvs REQUIRED)
 
 include_directories(include)
 
-add_executable(hitech_bindings src/hitech_bindings.cpp)
+# add_executable(hitech_bindings src/hitech_bindings.cpp)
 
-ament_target_dependencies(hitech_bindings
-  prizm_interfaces
-  rclcpp
-)
+# ament_target_dependencies(hitech_bindings
+#   prizm_interfaces
+#   rclcpp
+# )
 
-install(TARGETS
-  hitech_bindings
-  DESTINATION lib/${PROJECT_NAME}
-)
+# install(TARGETS
+#   hitech_bindings
+#   DESTINATION lib/${PROJECT_NAME}
+# )
 
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
@@ -35,17 +35,17 @@ install(DIRECTORY config
 )
 
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
+  # find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(ros_testing REQUIRED)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
+  # set(ament_cmake_copyright_FOUND TRUE)
   # the following line skips cpplint (only works in a git repo)
   # comment the line when this package is in a git repo and when
   # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
+  # set(ament_cmake_cpplint_FOUND TRUE)
+  # ament_lint_auto_find_test_dependencies()
 
   set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR})
   set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -53,6 +53,7 @@ if(BUILD_TESTING)
 
   set(TEST_FILES
     test/bindings_test.cpp
+    src/hitech_bindings.cpp
   )
   ament_add_gtest_executable(bindings_test ${TEST_FILES})
 

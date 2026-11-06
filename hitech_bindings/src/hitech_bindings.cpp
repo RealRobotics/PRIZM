@@ -110,9 +110,9 @@ void HitechBindings::initContainers() {
         std::cerr << e.what() << '\n';
     }
     // summary of instanatiation
-    RCLCPP_INFO(this->get_logger(),
-                "I have instantiated %d servos and %d motors.", numServos_,
-                numMotors_);
+    // RCLCPP_INFO(this->get_logger(),
+    //             "I have instantiated %d servos and %d motors.", numServos_,
+    //             numMotors_);
 }
 
 void HitechBindings::setServoPos(int id, int target_angle) {
@@ -123,10 +123,11 @@ void HitechBindings::setServoPos(int id, int target_angle) {
         if (target_angle < servoMap_[id].servoMax &&
             target_angle > servoMap_[id].servoMin) {
             // 3. check that the target is not the same as the current
-            if (servoMap_[id].currPos != targetHex) {
+            if (servoMap_[id].currAngle != targetHex) {
                 // 4. update structs
                 servoMap_[id].goalAngle = targetHex;
                 singleWriteBuilder(WriteTasks::NEW_POSITION, id, targetHex);
+                servoMap_[id].currAngle = targetHex;
             }
         }
 

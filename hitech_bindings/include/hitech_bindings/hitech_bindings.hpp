@@ -38,7 +38,6 @@ struct hitechData {
 
 typedef std::map<uint8_t, hitechData> hitechMap;
 
-
 class HitechBindings : public rclcpp::Node {
    private:
     // initialisers
@@ -46,17 +45,8 @@ class HitechBindings : public rclcpp::Node {
     void initParameters();
 
     // setters
-    void setServoPos(int id, int target_angle);
 
     // getters
-
-    // helpers
-    std::vector<uint8_t> singleWriteBuilder(WriteTasks task, int id,
-                                            int target);
-    std::vector<uint8_t> doubleWriteBuilder(WriteTasks task1, WriteTasks task2,
-                                            int id, int target1, int target2);
-    int singleReadBuilder();
-    int doubleReadBuilder();
 
     // attributes
     uint8_t canProtocol_ = 0x01;  // make this configurable
@@ -78,5 +68,15 @@ class HitechBindings : public rclcpp::Node {
    public:
     HitechBindings() : Node("HitechBindings") {}
     HitechBindings(std::string& nodeName, rclcpp::NodeOptions& options);
+
+    void setServoPos(int id, int target_angle);
+    // helpers
+    std::vector<uint8_t> singleWriteBuilder(WriteTasks task, int id,
+                                            int target);
+    std::vector<uint8_t> doubleWriteBuilder(WriteTasks task1, WriteTasks task2,
+                                            int id, int target1, int target2);
+    int singleReadBuilder();
+    int doubleReadBuilder();
+
     hitechMap servoMap_, motorMap_;
 };

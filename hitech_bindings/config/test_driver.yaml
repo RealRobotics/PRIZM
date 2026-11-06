@@ -1,34 +1,34 @@
 motor_driver_test:
   ros__parameters:
-    motor_driver.device_addr : "/dev/ttyUSB2"
-    motor_driver.num_servos: 2
-    motor_driver.num_motors: 0
-    motor_driver.servo_ids: 
+    hitech_driver.device_addr : "/dev/ttyUSB2"
+    hitech_driver.num_servos: 2
+    hitech_driver.num_motors: 1
+    hitech_driver.servo_ids: 
       - 0x10
       - 0x21
       
-    # motor_driver.motor_ids:
-    #   - 0x06
+    hitech_driver.motor_ids:
+      - 0x06
     #   - 0x09
     #   - 0x04
 
-    motor_driver.servo_mins:
+    hitech_driver.servo_mins:
       - 0
       - 0
       # - 290
 
-    motor_driver.servo_zeros:
+    hitech_driver.servo_zeros:
     - 180
     - 180
     # - -10
 
-    motor_driver.servo_maxs:
+    hitech_driver.servo_maxs:
     - 360
     - 360
     # - 40000
 
-    motor_driver.profile_velocity: 0.0
+    hitech_driver.profile_velocity: 0.0
 
-    motor_driver.profile_acceleration: 0.0
+    hitech_driver.profile_acceleration: 0.0
     # servo_min: 0
     # servo_max: 360

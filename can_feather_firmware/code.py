@@ -21,11 +21,11 @@ CAN_BUS_ID = 10        # servo's NODE_ID / REG_CAN_BUS_ID (CAN arbitration ID)
 SERVO_ID = 67
 EXTENDED = True        # CAN/PROTOCOL = CAN 2.0B (29-bit ID)
 BAUDRATE = 1_000_000   # CAN/BAUDRATE = 1000 kbps
-STREAM_FREQUENCY = 60
-LAST_READ_TIME = 0
+STREAM_FREQUENCY = 250
 MOTOR_DURATION = 4
 LAST_MOTOR_TIME = 0
-STREAM_DURATION = 1 / STREAM_FREQUENCY
+MAX_FRAMES_PER_PASS = 8   # cap on frames read per loop pass, so sending is never starved
+PRINT_INTERVAL = 2      # seconds between status prints (10 Hz)
 
 # ---- Servo registers -------------------------------------------------------
 REG_POSITION = 0x0C      # current position, 0..16383 (4096 = 90 deg)
@@ -134,11 +134,31 @@ def print_reply(msg):
     if len(data) == 8 and data[0] == ord("V"):
         _, sid, a, va, b, vb = struct.unpack("<BBBHBh", data)
         print(f"  servo {sid}: reg 0x{a:02X} = {va}, reg 0x{b:02X} = {vb}")
-    if len(data) == 5 and data[0] == ord('v'):
+    elif len(data) == 5 and data[0] == ord('v'):
         _, sid, addr, res = struct.unpack("<BBBH", data)
         print(f"    servo {sid}: reg: 0x{addr:02X} = {res}")
     else:
         print(f"  id 0x{msg.id:X}: {bytes(data).hex()}")
+
+
+# Latest streamed register values, keyed by register address. Filled by
+# handle_frame() without printing, so the receive path stays fast.
+latest = {}
+
+
+def handle_frame(msg):
+    """Store register values from a 'V'/'v' frame. Returns False for other frames."""
+    data = msg.data
+    if len(data) == 8 and data[0] == ord("V"):
+        _, _, a, va, b, vb = struct.unpack("<BBBHBh", data)
+        latest[a] = va
+        latest[b] = vb
+        return True
+    if len(data) == 5 and data[0] == ord("v"):
+        _, _, a, va = struct.unpack("<BBBH", data)
+        latest[a] = va
+        return True
+    return False
 
 
 def sw_reset():
@@ -191,15 +211,23 @@ with can_bus.listen(timeout=0.1) as listener:
     time.sleep(0.05)
     can_bus.send(write_stream_time())
     time.sleep(0.05)
+    # Stream only position + turn count: one 'V' frame per stream cycle.
+    # Slots 3-8 are cleared so the servo doesn't send extra frames.
     can_bus.send(write_stream_addr_0(REG_POSITION, REG_TURN_COUNT))
-    can_bus.send(write_stream_addr_1(REG_TORQUE, REG_VOLTAGE))
+    can_bus.send(write_stream_addr_1(0, 0))
     time.sleep(0.05)
 
     can_bus.send(write_position_turn(0,0))
     time.sleep(0.05)
 
+    frames = 0          # stream frames handled since last status print
+    other = 0           # non-'V'/'v' frames since last status print
+    last_print = time.monotonic()
+
     while True:
         now = time.monotonic()
+
+        # 1. Send first, so outgoing commands never wait on incoming data.
         if now >= LAST_MOTOR_TIME + MOTOR_DURATION:
             target = targets[i]
             print(f"Setting {target[0], target[1]}")
@@ -207,14 +235,26 @@ with can_bus.listen(timeout=0.1) as listener:
             LAST_MOTOR_TIME = now
             i = i + 1
             if(i > len(targets) - 1): i = 0
-        #read 
-        if now >= LAST_READ_TIME + STREAM_DURATION:
-            print(f"Got this many messsages waiting: {listener.in_waiting()}")
-            counter = 0
-            while listener.in_waiting():
-                print(f"msg no: {counter}")
-                msg = listener.receive()
-                counter+=1
-                if msg is not None:
-                    print_reply(msg)
-            LAST_READ_TIME = now
+
+        # 2. Read at most MAX_FRAMES_PER_PASS frames, then go round again.
+        for _ in range(MAX_FRAMES_PER_PASS):
+            if not listener.in_waiting():
+                break
+            msg = listener.receive()
+            if msg is None:
+                break
+            if handle_frame(msg):
+                frames += 1
+            else:
+                other += 1
+
+        # 3. Print a summary at PRINT_INTERVAL instead of once per frame.
+        if now - last_print >= PRINT_INTERVAL:
+            elapsed = now - last_print
+            print(f"{frames / elapsed:6.1f} frames/s  "
+                  f"pos={latest.get(REG_POSITION)}  "
+                  f"turn={latest.get(REG_TURN_COUNT)}  "
+                  f"other={other}  backlog={listener.in_waiting()}")
+            frames = 0
+            other = 0
+            last_print = now

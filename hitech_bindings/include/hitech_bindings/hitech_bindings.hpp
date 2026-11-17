@@ -1,8 +1,11 @@
 #include <rclcpp/rclcpp.hpp>
 
+#include <std_msgs/msg/u_int8_multi_array.hpp>
+
 #include "hitec-can-servo-reg-public.h"
 #include "prizm_interfaces/msg/claw_extension.hpp"
 #include "prizm_interfaces/msg/hitech_angle.hpp"
+
 
 // typedef prizm_interfaces::msg::ClawExtension ClawExtension;
 // typedef prizm_interfaces::msg
@@ -23,6 +26,13 @@ enum WriteTasks {
     NEW_SPEED = e_VELOCITY
 };
 
+enum ReadTasks{
+    POSITION = e_POSITION,
+    TURN = e_TURN_COUNT,
+    VOLTAGE = e_VOLTAGE,
+    TORQUE = e_TORQUE
+};
+
 struct hitechData {
     uint8_t run_mode = SERVO_MODE;
     uint16_t currAngle = 0x00;  // Range 0 -> 360. 4096 = 90deg
@@ -34,17 +44,22 @@ struct hitechData {
     uint16_t servoMin = 0x0000;
     uint16_t servoMax = 0x4000;
     uint16_t servoZero = 0x2000;
+    uint16_t voltage = 0x00; // 100 = 1.0V
+    uint16_t torque = 0x00; // PWM. 4095 = 100%
 };
 
 typedef std::map<uint8_t, hitechData> hitechMap;
+typedef std_msgs::msg::UInt8MultiArray uint8Arr;
 
 class HitechBindings : public rclcpp::Node {
    private:
     // initialisers
     void initContainers();
     void initParameters();
+    void initSubscribers();
 
     // setters
+    void readHandler(uint8_t servo_id, uint8_t addr, uint16_t data);
 
     // getters
 
@@ -58,12 +73,13 @@ class HitechBindings : public rclcpp::Node {
     // publishers
 
     // subscribers
-
+    rclcpp::Subscription<uint8Arr>::SharedPtr serialSub_;
     // services
 
     // clients
 
     // callbacks
+    void serialReadCB_(const uint8Arr& msg);
 
    public:
     HitechBindings() : Node("HitechBindings") {}
@@ -77,6 +93,9 @@ class HitechBindings : public rclcpp::Node {
                                             int id, int target1, int target2);
     int singleReadBuilder();
     int doubleReadBuilder();
+
+    void singleReadHandler(const uint8Arr& msg);
+    void doubleReadHandler(const uint8Arr& msg);
 
     hitechMap servoMap_, motorMap_;
 };

@@ -12,20 +12,24 @@ find_package(dynamixel_sdk REQUIRED)
 find_package(prizm_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 include_directories(include)
 
-# add_executable(hitech_bindings src/hitech_bindings.cpp)
+add_executable(hitech_driver 
+  src/hitech_driver.cpp
+  src/hitech_bindings.cpp)
 
-# ament_target_dependencies(hitech_bindings
-#   prizm_interfaces
-#   rclcpp
-# )
+ament_target_dependencies(hitech_driver
+  prizm_interfaces
+  rclcpp
+  std_msgs
+)
 
-# install(TARGETS
-#   hitech_bindings
-#   DESTINATION lib/${PROJECT_NAME}
-# )
+install(TARGETS
+  hitech_driver
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
@@ -64,6 +68,7 @@ if(BUILD_TESTING)
   ament_target_dependencies(bindings_test
     prizm_interfaces
     std_srvs
+    std_msgs
     rclcpp
   )
 

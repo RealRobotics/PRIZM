@@ -62,9 +62,24 @@ TEST_F(TestMotorDriver, BuildSingleInstruction){
 
 }
 
-TEST_F(TestMotorDriver, ChangeOPMode) { FAIL(); }
+TEST_F(TestMotorDriver, ReadSinglePos) {
+    uint8Arr data;
+    data.data = std::vector<uint8_t>{
+        'v', 0x10, ReadTasks::POSITION, 0xA8, 0x16
+    };
+    node_->singleReadHandler(data);
+    ASSERT_EQ(node_->servoMap_[0x10].currAngle, 5800);
+}
 
-TEST_F(TestMotorDriver, SetMultiplePosition) { FAIL(); }
+TEST_F(TestMotorDriver, ReadPosTurn) {
+    uint8Arr data;
+    data.data = std::vector<uint8_t>{
+        'v', 0x10, ReadTasks::POSITION, 0xA8, 0x16, ReadTasks::TURN, 0x01, 00
+    };
+    node_->doubleReadHandler(data);
+    ASSERT_EQ(node_->servoMap_[0x10].currAngle, 5800);
+    ASSERT_EQ(node_->servoMap_[0x10].currTurn, 1);
+}
 
 int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);

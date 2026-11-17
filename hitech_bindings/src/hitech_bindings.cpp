@@ -7,6 +7,7 @@ HitechBindings::HitechBindings(std::string& nodeName,
     : Node(nodeName, options) {
     initParameters();
     initContainers();
+    initSubscribers();
 }
 
 void HitechBindings::initParameters() {
@@ -115,6 +116,12 @@ void HitechBindings::initContainers() {
     //             numMotors_);
 }
 
+void HitechBindings::initSubscribers() {
+    serialSub_ = this->create_subscription<uint8Arr>(
+        "serial_read", 10,
+        std::bind(&HitechBindings::serialReadCB_, this, std::placeholders::_1));
+}
+
 void HitechBindings::setServoPos(int id, int target_angle) {
     uint16_t targetHex = positionToHex(target_angle);
     // 1. check that the ID is valid
@@ -163,6 +170,80 @@ std::vector<uint8_t> HitechBindings::doubleWriteBuilder(WriteTasks task1,
     output.at(0) = 'W';
 
     return output;
+}
+
+void HitechBindings::serialReadCB_(const uint8Arr& msg) {
+    size_t data_len = msg.data.size();
+    // fork 1: len 5 or 8
+    switch (data_len) {
+        case 5:
+            // single read
+            singleReadHandler(msg);
+            break;
+        case 8:
+            // double read
+            doubleReadHandler(msg);
+            break;
+
+        default:
+            RCLCPP_ERROR(this->get_logger(),
+                         "Message received was len %ld which is neither 5 or 8 "
+                         "byte long. Check "
+                         "if the data needs tidying or ignore if data was bad.",
+                         data_len);
+            break;
+    }
+}
+
+void HitechBindings::singleReadHandler(const uint8Arr& msg) {
+    // at this point we have guaranteed that the id is valid, so we just need to
+    // write the right address
+    int servo_id = msg.data.at(1);
+    int reg = msg.data.at(2);
+    int data = msg.data.at(4) * 256 + msg.data.at(3);
+    readHandler(servo_id, reg, data);
+}
+
+void HitechBindings::doubleReadHandler(const uint8Arr& msg) {
+    // at this point we have guaranteed that the id is valid, so we just need to
+    // write the right address
+    int servo_id = msg.data.at(1);
+    int reg1 = msg.data.at(2);
+    int data1 = msg.data.at(4) * 256 + msg.data.at(3);
+    int reg2 = msg.data.at(5);
+    int data2 = msg.data.at(7) * 256 + msg.data.at(6);
+    readHandler(servo_id, reg1, data1);
+    readHandler(servo_id, reg2, data2);
+}
+
+void HitechBindings::readHandler(uint8_t servo_id, uint8_t addr,
+                                 uint16_t data) {
+    if (servoMap_.find(servo_id) != servoMap_.end()) {
+        switch (addr) {
+            case ReadTasks::POSITION:
+                servoMap_[servo_id].currAngle = data;
+                break;
+            case ReadTasks::TURN:
+                servoMap_[servo_id].currTurn = data;
+                break;
+            case ReadTasks::VOLTAGE:
+                servoMap_[servo_id].voltage = data;
+                break;
+            case ReadTasks::TORQUE:
+                servoMap_[servo_id].torque = data;
+                break;
+            default:
+                RCLCPP_ERROR(this->get_logger(),
+                             "Read register 0x%X is not in implemented list. "
+                             "Check the ReadTasks enum.",
+                             addr);
+                break;
+        }
+    } else {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Servo id read was not in the list of instantiated "
+                     "servos. Printing the values only");
+    }
 }
 
 // int main(int argc, char* argv) { return 1; }

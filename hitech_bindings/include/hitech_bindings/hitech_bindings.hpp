@@ -27,7 +27,7 @@ enum WriteTasks {
 };
 
 enum ReadTasks{
-    POSITION = e_POSITION,
+    POSITION = 0x0C,
     TURN = e_TURN_COUNT,
     VOLTAGE = e_VOLTAGE,
     TORQUE = e_TORQUE
@@ -49,6 +49,7 @@ struct hitechData {
 };
 
 typedef std::map<uint8_t, hitechData> hitechMap;
+typedef prizm_interfaces::msg::HitechAngle HitechAngle;
 typedef std_msgs::msg::UInt8MultiArray uint8Arr;
 
 class HitechBindings : public rclcpp::Node {
@@ -57,6 +58,7 @@ class HitechBindings : public rclcpp::Node {
     void initContainers();
     void initParameters();
     void initSubscribers();
+    void initPublishers();
 
     // setters
     void readHandler(uint8_t servo_id, uint8_t addr, uint16_t data);
@@ -71,6 +73,7 @@ class HitechBindings : public rclcpp::Node {
     std::vector<int64_t> speedMins_, speedMaxs_;
     std::vector<int64_t> servoIds_, motorIds_;
     // publishers
+    rclcpp::Publisher<HitechAngle>::SharedPtr anglePub_;
 
     // subscribers
     rclcpp::Subscription<uint8Arr>::SharedPtr serialSub_;
@@ -97,5 +100,8 @@ class HitechBindings : public rclcpp::Node {
     void singleReadHandler(const uint8Arr& msg);
     void doubleReadHandler(const uint8Arr& msg);
 
+    void publishServoInfo();
+
+    // structs
     hitechMap servoMap_, motorMap_;
 };

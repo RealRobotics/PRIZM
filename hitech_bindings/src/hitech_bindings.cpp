@@ -8,6 +8,7 @@ HitechBindings::HitechBindings(std::string& nodeName,
     initParameters();
     initContainers();
     initSubscribers();
+    initPublishers();
 }
 
 void HitechBindings::initParameters() {
@@ -122,6 +123,10 @@ void HitechBindings::initSubscribers() {
         std::bind(&HitechBindings::serialReadCB_, this, std::placeholders::_1));
 }
 
+void HitechBindings::initPublishers() {
+    anglePub_ = this->create_publisher<HitechAngle>("HitechData", 10);
+}
+
 void HitechBindings::setServoPos(int id, int target_angle) {
     uint16_t targetHex = positionToHex(target_angle);
     // 1. check that the ID is valid
@@ -193,11 +198,10 @@ void HitechBindings::serialReadCB_(const uint8Arr& msg) {
                          data_len);
             break;
     }
+    publishServoInfo();
 }
 
 void HitechBindings::singleReadHandler(const uint8Arr& msg) {
-    // at this point we have guaranteed that the id is valid, so we just need to
-    // write the right address
     int servo_id = msg.data.at(1);
     int reg = msg.data.at(2);
     int data = msg.data.at(4) * 256 + msg.data.at(3);
@@ -205,8 +209,6 @@ void HitechBindings::singleReadHandler(const uint8Arr& msg) {
 }
 
 void HitechBindings::doubleReadHandler(const uint8Arr& msg) {
-    // at this point we have guaranteed that the id is valid, so we just need to
-    // write the right address
     int servo_id = msg.data.at(1);
     int reg1 = msg.data.at(2);
     int data1 = msg.data.at(4) * 256 + msg.data.at(3);
@@ -244,6 +246,26 @@ void HitechBindings::readHandler(uint8_t servo_id, uint8_t addr,
                      "Servo id read was not in the list of instantiated "
                      "servos. Printing the values only");
     }
+}
+
+void HitechBindings::publishServoInfo() {
+    HitechAngle data;
+
+    data.motor_id.resize(numServos_);
+    data.motor_angle.resize(numServos_);
+    data.motor_turn.resize(numServos_);
+    data.size = numServos_;
+
+    int counter = 0;
+    for (auto const& [key,val]: servoMap_){
+        
+        data.motor_id.at(counter) = key;
+        data.motor_angle.at(counter) = val.currAngle;
+        data.motor_turn.at(counter) = val.currTurn;
+        counter++;
+    }
+
+    anglePub_->publish(data);
 }
 
 // int main(int argc, char* argv) { return 1; }

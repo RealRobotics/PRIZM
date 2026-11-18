@@ -1,4 +1,4 @@
 prizm_interfaces/HitechAngle hitech_angle
 ---
-int32[] angles
+int32[] positions
 bool success

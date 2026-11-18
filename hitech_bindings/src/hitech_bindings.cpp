@@ -125,6 +125,7 @@ void HitechBindings::initSubscribers() {
 
 void HitechBindings::initPublishers() {
     anglePub_ = this->create_publisher<HitechAngle>("HitechData", 10);
+    serialPub_ = this->create_publisher<uint8Arr>("/serial_write", 10);
 }
 
 void HitechBindings::setServoPos(int id, int target_angle) {
@@ -257,8 +258,7 @@ void HitechBindings::publishServoInfo() {
     data.size = numServos_;
 
     int counter = 0;
-    for (auto const& [key,val]: servoMap_){
-        
+    for (auto const& [key, val] : servoMap_) {
         data.motor_id.at(counter) = key;
         data.motor_angle.at(counter) = val.currAngle;
         data.motor_turn.at(counter) = val.currTurn;
@@ -268,4 +268,24 @@ void HitechBindings::publishServoInfo() {
     anglePub_->publish(data);
 }
 
-// int main(int argc, char* argv) { return 1; }
+void HitechBindings::publishSerialCommand(std::vector<uint8_t> message) {
+    uint8Arr outgoing;
+    outgoing.data = message;
+
+    serialPub_->publish(outgoing);
+}
+
+void HitechBindings::setAngleCB_(const SetHitechAngle::Request::SharedPtr req,
+                                 SetHitechAngle::Response::SharedPtr res) {
+    // get the data out of the request
+    int num_incoming_angles = req->hitech_angle.size;
+    for (int i = 0; i < num_incoming_angles; i++) {
+        int servo_id = req->hitech_angle.motor_id[i];
+        int target_angle = req->hitech_angle.motor_angle[i];
+        int target_turn = req->hitech_angle.motor_turn[i];
+        doubleWriteBuilder(WriteTasks::NEW_POSITION, WriteTasks::NEW_TURN,
+                           servo_id, target_angle, target_turn);
+    }
+
+    //@todo finish this function
+}

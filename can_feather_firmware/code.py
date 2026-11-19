@@ -1,11 +1,11 @@
-# Send a position/turn command to a Hitec MDB916 CAN servo
-# Board: Adafruit Feather RP2040 CAN (MCP2515 controller)
-#
-# Protocol: Hitec "CAN 2.0A/2.0B Servo Control Protocol", Custom Packet Format.
-#   'W' write, 2 registers (8 data bytes):
-#     ['W', servo_id, addrA, dataA_lo, dataA_hi, addrB, dataB_lo, dataB_hi]
-#   'R' read, 2 registers (4 data bytes):  ['R', servo_id, addrA, addrB]
-#     reply 'V':  ['V', servo_id, addrA, A_lo, A_hi, addrB, B_lo, B_hi]
+# # Send a position/turn command to a Hitec MDB916 CAN servo
+# # Board: Adafruit Feather RP2040 CAN (MCP2515 controller)
+# #
+# # Protocol: Hitec "CAN 2.0A/2.0B Servo Control Protocol", Custom Packet Format.
+# #   'W' write, 2 registers (8 data bytes):
+# #     ['W', servo_id, addrA, dataA_lo, dataA_hi, addrB, dataB_lo, dataB_hi]
+# #   'R' read, 2 registers (4 data bytes):  ['R', servo_id, addrA, addrB]
+# #     reply 'V':  ['V', servo_id, addrA, A_lo, A_hi, addrB, B_lo, B_hi]
 import struct
 import time
 
@@ -21,9 +21,11 @@ CAN_BUS_ID = 10        # servo's NODE_ID / REG_CAN_BUS_ID (CAN arbitration ID)
 SERVO_ID = 67
 EXTENDED = True        # CAN/PROTOCOL = CAN 2.0B (29-bit ID)
 BAUDRATE = 1_000_000   # CAN/BAUDRATE = 1000 kbps
-STREAM_FREQUENCY = 250
+STREAM_FREQUENCY = 10 # Stream frequency set to the servo. Data will be fed back at this rate
+INPUT_COMMAND_FREQUENCY = 0.01 # seconds between serial input checks (read is non-blocking)
 MOTOR_DURATION = 4
 LAST_MOTOR_TIME = 0
+LAST_INPUT_TIME = 0
 MAX_FRAMES_PER_PASS = 8   # cap on frames read per loop pass, so sending is never starved
 PRINT_INTERVAL = 2      # seconds between status prints (10 Hz)
 
@@ -60,7 +62,7 @@ def write_position_turn(position, turn=0):
         REG_POSITION_NEW, position,  # uint16, little endian
         REG_TURN_NEW, turn,          # int16, little endian
     )
-    print(position)
+    # print(position)
     return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
 
 
@@ -188,11 +190,24 @@ can_bus = CAN(spi, cs, baudrate=BAUDRATE)
 # test_datac = struct.pack("<BBB", ord('h'),ord('i'), ord('c'))
 # test_datad = struct.pack("<BBB", ord('h'),ord('i'), ord('d'))
 
-# # usb_cdc.Serial().write(test_data)
-# data = usb_cdc.data
-# console = usb_cdc.console
-# data.write(test_datad)
-# console.write(test_datac)
+# usb_cdc.Serial().write(test_data)
+serial_port = usb_cdc.data # writes over to /dev/ttyACM1
+if serial_port is None:
+    raise RuntimeError("usb_cdc.data is disabled: check boot.py and hard-reset the board")
+serial_port.timeout = 0     # never block the main loop on serial reads
+W_FRAME_LEN = 8             # every instruction is an 8-byte 'W' frame
+RX_STALE_S = 0.5            # drop a partial frame if no more bytes arrive for this long
+rx_buf = bytearray()        # incoming bytes not yet forwarded as a full frame
+rx_last = 0                 # time the last serial bytes arrived
+
+
+def next_frame_start(buf, start):
+    """Index of the next 'W' at or after start, or -1 if none."""
+    for k in range(start, len(buf)):
+        if buf[k] == 0x57:  # 'W'
+            return k
+    return -1
+
 
 i = 0
 targets = [(deg_to_pos(90), 0), (deg_to_pos(90), 1), (deg_to_pos(270), 0)]  # (position, turn)
@@ -227,16 +242,43 @@ with can_bus.listen(timeout=0.1) as listener:
     while True:
         now = time.monotonic()
 
-        # 1. Send first, so outgoing commands never wait on incoming data.
-        if now >= LAST_MOTOR_TIME + MOTOR_DURATION:
-            target = targets[i]
-            print(f"Setting {target[0], target[1]}")
-            ok = can_bus.send(write_position_turn(target[0], target[1]))
-            LAST_MOTOR_TIME = now
-            i = i + 1
-            if(i > len(targets) - 1): i = 0
+        # 0. Check if any new instructions are present
+        #    Non-blocking: buffer whatever bytes are waiting, then forward
+        #    every complete 8-byte 'W' frame. Partial frames wait for more data.
+        if now >= LAST_INPUT_TIME + INPUT_COMMAND_FREQUENCY:
+            LAST_INPUT_TIME = now
+            n = serial_port.in_waiting
+            if n:
+                rx_buf.extend(serial_port.read(n))
+                rx_last = now
+            elif rx_buf and now - rx_last > RX_STALE_S:
+                print(f"dropping stale partial frame: {bytes(rx_buf).hex()}")
+                rx_buf = bytearray()
 
-        # 2. Read at most MAX_FRAMES_PER_PASS frames, then go round again.
+            while len(rx_buf) >= W_FRAME_LEN:
+                # Resync if the buffer doesn't start with a plausible frame
+                # (a 0x57 inside a data value would have the wrong servo ID).
+                if rx_buf[0] != 0x57 or rx_buf[1] not in (SERVO_ID, 0):
+                    j = next_frame_start(rx_buf, 1)
+                    print(f"resync: dropped {j if j >= 0 else len(rx_buf)} byte(s)")
+                    rx_buf = rx_buf[j:] if j >= 0 else bytearray()
+                    continue
+                frame = bytes(rx_buf[:W_FRAME_LEN])
+                rx_buf = rx_buf[W_FRAME_LEN:]
+                can_bus.send(Message(id=CAN_BUS_ID, data=frame, extended=EXTENDED))
+
+
+        # 1. Send first, so outgoing commands never wait on incoming data.
+        # if now >= LAST_MOTOR_TIME + MOTOR_DURATION:
+        #     target = targets[i]
+        #     # print(f"Setting {target[0], target[1]}")
+        #     ok = can_bus.send(write_position_turn(target[0], target[1]))
+        #     LAST_MOTOR_TIME = now
+        #     i = i + 1
+        #     if(i > len(targets) - 1): i = 0
+
+        
+        # 3. Read at most MAX_FRAMES_PER_PASS frames, then go round again.
         for _ in range(MAX_FRAMES_PER_PASS):
             if not listener.in_waiting():
                 break
@@ -245,16 +287,18 @@ with can_bus.listen(timeout=0.1) as listener:
                 break
             if handle_frame(msg):
                 frames += 1
+                serial_port.write(msg.data)
             else:
                 other += 1
 
-        # 3. Print a summary at PRINT_INTERVAL instead of once per frame.
-        if now - last_print >= PRINT_INTERVAL:
-            elapsed = now - last_print
-            print(f"{frames / elapsed:6.1f} frames/s  "
-                  f"pos={latest.get(REG_POSITION)}  "
-                  f"turn={latest.get(REG_TURN_COUNT)}  "
-                  f"other={other}  backlog={listener.in_waiting()}")
-            frames = 0
-            other = 0
-            last_print = now
+
+        # # 3. Print a summary at PRINT_INTERVAL instead of once per frame.
+        # if now - last_print >= PRINT_INTERVAL:
+        #     elapsed = now - last_print
+        #     print(f"{frames / elapsed:6.1f} frames/s  "
+        #           f"pos={latest.get(REG_POSITION)}  "
+        #           f"turn={latest.get(REG_TURN_COUNT)}  "
+        #           f"other={other}  backlog={listener.in_waiting()}")
+        #     frames = 0
+        #     other = 0
+        #     last_print = now

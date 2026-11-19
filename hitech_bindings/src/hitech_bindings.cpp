@@ -9,6 +9,7 @@ HitechBindings::HitechBindings(std::string& nodeName,
     initContainers();
     initSubscribers();
     initPublishers();
+    initServices();
 }
 
 void HitechBindings::initParameters() {
@@ -121,6 +122,12 @@ void HitechBindings::initSubscribers() {
     serialSub_ = this->create_subscription<uint8Arr>(
         "serial_read", 10,
         std::bind(&HitechBindings::serialReadCB_, this, std::placeholders::_1));
+}
+
+void HitechBindings::initServices() {
+    setAngleSrv_ = this->create_service<SetHitechAngle>(
+        "/set_angle", std::bind(&HitechBindings::setAngleCB_, this,
+                                std::placeholders::_1, std::placeholders::_2));
 }
 
 void HitechBindings::initPublishers() {
@@ -279,13 +286,20 @@ void HitechBindings::setAngleCB_(const SetHitechAngle::Request::SharedPtr req,
                                  SetHitechAngle::Response::SharedPtr res) {
     // get the data out of the request
     int num_incoming_angles = req->hitech_angle.size;
+    res->positions.resize(num_incoming_angles);
+
     for (int i = 0; i < num_incoming_angles; i++) {
         int servo_id = req->hitech_angle.motor_id[i];
         int target_angle = req->hitech_angle.motor_angle[i];
         int target_turn = req->hitech_angle.motor_turn[i];
-        doubleWriteBuilder(WriteTasks::NEW_POSITION, WriteTasks::NEW_TURN,
-                           servo_id, target_angle, target_turn);
+        auto instruction =
+            doubleWriteBuilder(WriteTasks::NEW_POSITION, WriteTasks::NEW_TURN,
+                               servo_id, target_angle, target_turn);
+        // res->angles
+        res->positions[i] = target_angle / 4095 * 90 + target_turn * 360;
+        publishSerialCommand(instruction);
     }
+    res->success = true;
 
     //@todo finish this function
 }

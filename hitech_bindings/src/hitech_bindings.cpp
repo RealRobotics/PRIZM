@@ -303,3 +303,17 @@ void HitechBindings::setAngleCB_(const SetHitechAngle::Request::SharedPtr req,
 
     //@todo finish this function
 }
+
+void HitechBindings::setStreamTime(uint8_t servo_id, int stream_time) {
+    singleWriteBuilder(WriteTasks::STREAM_TIME, servo_id, stream_time);
+}
+
+void HitechBindings::toggleStreamMode(uint8_t servo_id, bool toggle) {
+    singleWriteBuilder(WriteTasks::STREAM_TIME, servo_id, toggle);
+}
+
+void HitechBindings::setStreamReg(uint8_t servo_id, WriteTasks stream_addr, uint8_t reg1,
+                                  uint8_t reg2) {
+    uint16_t stream_reg_combined = reg1 | (reg2 << 8);
+    singleWriteBuilder(stream_addr, servo_id, stream_reg_combined);
+}

@@ -23,14 +23,34 @@ enum WriteTasks {
     SERVO_MAX = e_POSITION_MAX,
     SERVO_MIN = e_POSITION_MIN,
     SERVO_ZERO = e_POSITION_MID,
-    NEW_SPEED = e_VELOCITY
+    NEW_SPEED = e_VELOCITY,
+    STREAM_MODE = e_STREAM_MODE,  // 0=off, 1=on
+    STREAM_TIME = e_STREAM_TIME,  // ms
+    REG_STREAM_0 = e_STREAM_0,
+    REG_STREAM_1 = e_STREAM_1,
+    REG_STREAM_2 = e_STREAM_2,
+    REG_STREAM_3 = e_STREAM_3
+
 };
 
 enum ReadTasks {
-    POSITION = 0x0C,
-    TURN = e_TURN_COUNT,
-    VOLTAGE = e_VOLTAGE,
-    TORQUE = e_TORQUE
+    POSITION = 0x0C,        // 4095 = 90deg
+    TURN = e_TURN_COUNT,    // 1 = 360deg
+    VOLTAGE = e_VOLTAGE,    // 100 = 1.0V
+    TORQUE = e_TORQUE,      // PWM out. 4095 = 100%
+    VELOCITY = e_VELOCITY,  // posdiff/100msec
+    /**
+     * @brief
+     * Bit6:    Volt Very low
+     * Bit7:    Over Volt Break
+     * Bit8:    Pos Emg Min under
+     * Bit9:    Pos Emg Max over
+     * Bit10:   MCU Temp under
+     * Bit11:   MCU Temp over
+     * Bit13:   Voltage Under
+     * Bit14:   Voltage Over
+     */
+    E_STOP = e_EMERGENCY_STOP
 };
 
 struct hitechData {
@@ -41,11 +61,16 @@ struct hitechData {
     uint16_t goalAngle = 0x00;  // Range 0 -> 360. 4096 = 90deg
     int16_t goalTurn = 0x00;    // 1 = 360deg
     uint16_t goalPos = 0x00;    // currTurn * 360 + currAngle
+    uint16_t currVel = 0x00;
     uint16_t servoMin = 0x0000;
     uint16_t servoMax = 0x4000;
     uint16_t servoZero = 0x2000;
     uint16_t voltage = 0x00;  // 100 = 1.0V
     uint16_t torque = 0x00;   // PWM. 4095 = 100%
+    uint8_t stream_mode = false;
+    uint16_t stream_time = 0x00;  // Interval to set. 0 to 10000 ms, 10001 to
+                                  // 11000 = (Value-10000) Hz
+    uint16_t e_stop = 0x00;
 };
 
 typedef std::map<uint8_t, hitechData> hitechMap;
@@ -63,7 +88,42 @@ class HitechBindings : public rclcpp::Node {
     void initServices();
 
     // setters
+    /**
+     * @brief Takes in parsed received data and populates the relevant structs
+     * with the obtained info.
+     *
+     * @param servo_id servo id to update
+     * @param addr register the data came from
+     * @param data data repacked into a single int
+     */
     void readHandler(uint8_t servo_id, uint8_t addr, uint16_t data);
+
+    /**
+     * @brief Set the Stream Time for a servo and publish it downstream
+     *
+     * @param servo_id servo id to operate on
+     * @param stream_time Interval to set. 0 to 10000 ms, 10001 to 11000 =
+     * (Value-10000) Hz
+     */
+    void setStreamTime(uint8_t servo_id, int stream_time);
+
+    /**
+     * @brief Toggle the Stream Mode for a servo and publish downstream.
+     *
+     * @param servo_id servo id to operate on
+     * @param toggle True: stream at frequency ```HitechData::stream_time```
+     */
+    void toggleStreamMode(uint8_t servo_id, bool toggle);
+
+    /**
+     * @brief Set a pair of streaming registers for a given servo id
+     * 
+     * @param servo_id servo id to operate on
+     * @param stream_addr See ```WriteTasks::REG_STREAM_0/1/2/3```.
+     * @param reg1 First address to stream. See ```ReadTasks``` for valid inputs 
+     * @param reg2 Second address to stream. See ```ReadTasks``` for valid inputs
+     */
+    void setStreamReg(uint8_t servo_id, WriteTasks stream_addr, uint8_t reg1, uint8_t reg2);
 
     // getters
 

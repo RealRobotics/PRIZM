@@ -1,6 +1,7 @@
 # Local hooks that mirror the ament linters run by `colcon test` in CI.
 # Install with: pip install pre-commit && pre-commit install
-exclude: ^(bags/|can_feather_firmware/)
+# Vendor header from Hitec is kept verbatim
+exclude: ^(bags/|can_feather_firmware/)|hitec-can-servo-reg-public\.h$
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -20,7 +21,6 @@ repos:
     hooks:
       - id: clang-format
         types_or: [c, c++]
-        exclude: hitec-can-servo-reg-public\.h$
 
   # Same plugins rosdep installs for ament_flake8; config in setup.cfg
   - repo: https://github.com/PyCQA/flake8

@@ -3,10 +3,10 @@ motor_driver_test:
     hitech_driver.device_addr : "/dev/ttyUSB2"
     hitech_driver.num_servos: 2
     hitech_driver.num_motors: 1
-    hitech_driver.servo_ids: 
+    hitech_driver.servo_ids:
       - 0x10
       - 0x21
-      
+
     hitech_driver.motor_ids:
       - 0x06
     #   - 0x09

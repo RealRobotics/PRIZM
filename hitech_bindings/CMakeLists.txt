@@ -52,12 +52,24 @@ if(BUILD_TESTING)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   set(ament_cmake_uncrustify_FOUND TRUE)
-  set(ament_cmake_clang_format_CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../.clang-format")
-  # Vendor header from Hitec, not ours to reformat
+  # Vendor header from Hitec, not ours to reformat/check
   set(AMENT_LINT_AUTO_FILE_EXCLUDE
     "${CMAKE_CURRENT_SOURCE_DIR}/include/hitech_bindings/hitec-can-servo-reg-public.h"
   )
+  # ament_clang_format (Jazzy) ignores AMENT_LINT_AUTO_FILE_EXCLUDE, so
+  # disable its auto hook and register it below with explicit paths instead.
+  set(AMENT_LINT_AUTO_EXCLUDE ament_cmake_clang_format)
   ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_clang_format QUIET)
+  if(ament_cmake_clang_format_FOUND)
+    ament_clang_format(
+      CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../.clang-format"
+      src
+      test
+      include/hitech_bindings/hitech_bindings.hpp
+    )
+  endif()
 
   set(TEST_FILES
     test/bindings_test.cpp

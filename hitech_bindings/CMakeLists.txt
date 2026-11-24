@@ -8,7 +8,6 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
-find_package(dynamixel_sdk REQUIRED)
 find_package(prizm_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_srvs REQUIRED)
@@ -16,7 +15,7 @@ find_package(std_msgs REQUIRED)
 
 include_directories(include)
 
-add_executable(hitech_driver 
+add_executable(hitech_driver
   src/hitech_driver.cpp
   src/hitech_bindings.cpp)
 
@@ -45,21 +44,20 @@ install(PROGRAMS
 
 
 if(BUILD_TESTING)
-  # find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
-  find_package(ros_testing REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  # set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  # set(ament_cmake_cpplint_FOUND TRUE)
-  # ament_lint_auto_find_test_dependencies()
 
-  set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR})
-  set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-  set(PKG_NAME ${PROJECT_NAME})
+  # Linters registered as tests from the <test_depend>s in package.xml.
+  # Curated subset: copyright / cpplint / uncrustify are intentionally off.
+  find_package(ament_lint_auto REQUIRED)
+  set(ament_cmake_copyright_FOUND TRUE)
+  set(ament_cmake_cpplint_FOUND TRUE)
+  set(ament_cmake_uncrustify_FOUND TRUE)
+  set(ament_cmake_clang_format_CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../.clang-format")
+  # Vendor header from Hitec, not ours to reformat
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/hitech_bindings/hitec-can-servo-reg-public.h"
+  )
+  ament_lint_auto_find_test_dependencies()
 
   set(TEST_FILES
     test/bindings_test.cpp
@@ -68,8 +66,12 @@ if(BUILD_TESTING)
   ament_add_gtest_executable(bindings_test ${TEST_FILES})
 
   target_include_directories(bindings_test PUBLIC
-    $<BUILD_INTERFACE:${SRC_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+  )
+  # The test loads its node parameters from this file via NodeOptions
+  target_compile_definitions(bindings_test PRIVATE
+    TEST_PARAMS_FILE="${CMAKE_CURRENT_SOURCE_DIR}/config/test_driver.yaml"
   )
   ament_target_dependencies(bindings_test
     prizm_interfaces
@@ -78,12 +80,10 @@ if(BUILD_TESTING)
     rclcpp
   )
 
-
-  add_ros_test(launch/binding_test.launch.py ARGS
-    "TEST_DIR:=${TEST_DIR}"
-    "SRC_DIR:=${SRC_DIR}"
-    "PKG_NAME:=${PKG_NAME}"
-  )
+  # Run the gtest directly (each TEST_F is reported individually in the
+  # JUnit XML). This replaces the launch_testing wrapper, which raced: the
+  # gtest finished before the active test attached, so it always failed.
+  ament_add_gtest_test(bindings_test)
 
 endif()
 

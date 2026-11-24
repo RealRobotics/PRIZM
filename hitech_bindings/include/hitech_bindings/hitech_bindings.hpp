@@ -5,11 +5,10 @@
 #include "prizm_interfaces/msg/claw_extension.hpp"
 #include "prizm_interfaces/msg/hitech_angle.hpp"
 #include "prizm_interfaces/msg/hitech_position.hpp"
-#include "prizm_interfaces/srv/set_hitech_angle.hpp"
-#include "prizm_interfaces/srv/set_stream_registers.hpp"
-
 #include "prizm_interfaces/srv/detail/set_hitech_position__struct.hpp"
+#include "prizm_interfaces/srv/set_hitech_angle.hpp"
 #include "prizm_interfaces/srv/set_hitech_position.hpp"
+#include "prizm_interfaces/srv/set_stream_registers.hpp"
 
 // typedef prizm_interfaces::msg::ClawExtension ClawExtension;
 // typedef prizm_interfaces::msg
@@ -176,8 +175,7 @@ class HitechBindings : public rclcpp::Node {
     void setStreamCB_(const SetStreamRegisters::Request::SharedPtr req,
                       SetStreamRegisters::Response::SharedPtr res);
     void setPositionCB_(const SetHitechPosition::Request::SharedPtr req,
-                     SetHitechPosition::Response::SharedPtr res);
-    
+                        SetHitechPosition::Response::SharedPtr res);
 
    public:
     HitechBindings() : Node("HitechBindings") {}

@@ -2,45 +2,46 @@
 
 # from random import getstate
 
+from prizm_interfaces.msg import HitechPosition
 import rclpy
 from rclpy.node import Node
-import time
-from prizm_interfaces.srv import SetHitechPosition
 from sensor_msgs.msg import Joy
 
 
 class JoyControl(Node):
     def __init__(self):
-        super().__init__("JoyControl")
-        self.service_caller = self.create_client(
-            SetHitechPosition, "/set_position")
+        super().__init__('JoyControl')
+        self.pos_publisher = self.create_publisher(
+            HitechPosition, '/position', 10)
 
         self.joy_sub = self.create_subscription(
-            Joy, "/joy", self.joy_callback, 10)
+            Joy, '/joy', self.joy_callback, 10)
 
-        self.positions = []
+        self.pos_1 = 0
+        self.pos_2 = 0
 
     def joy_callback(self, msg: Joy):
         # msg.buttons
         # self.get_logger().info(msg.buttons)
         if msg.axes[1]:
-            self.positions[0] += int(msg.axes[1] * 100) / 100 * 512
+            self.pos_1 += int(msg.axes[1]) * 100
         if msg.axes[2]:
-            self.positions[3] += int(msg.axes[3] * 100) / 100 * 512
+            self.pos_2 += int(msg.axes[3]) * 100
+        if self.pos_1 <= 0:
+            self.pos_1 = 0
 
-        self.call_service(self.positions)
+        if self.pos_2 <= 0:
+            self.pos_2 = 0
 
-    def call_service(self, positions: list[int]):
-        req = SetHitechPosition.Request()
-        req.hitech_position.size = 2
-        req.hitech_position.motor_id = [0x43, 0x99]
-        req.hitech_position.motor_pos = positions
+        self.pub_positions()
 
-        self.future = self.service_caller.call_async(req)
-        # rclpy.spin_until_future_complete(self, self.future)
-        while not self.future.done():   
-            time.sleep(1e-3)
-        return self.future.result()
+    def pub_positions(self):
+        msg = HitechPosition()
+        msg.size = 2
+        msg.motor_id = [0x43, 0x99]
+        msg.motor_pos = [self.pos_1, self.pos_2]
+
+        self.pos_publisher.publish(msg)
 
 
 def main(args=None):
@@ -51,6 +52,7 @@ def main(args=None):
     rclpy.spin(joyControl)
 
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

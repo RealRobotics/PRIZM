@@ -1,0 +1,35 @@
+# Local hooks that mirror the ament linters run by `colcon test` in CI.
+# Install with: pip install pre-commit && pre-commit install
+exclude: ^(bags/|can_feather_firmware/)
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-xml
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+
+  # clang-format 18 is what Ubuntu 24.04 / ROS Jazzy (ament_clang_format) uses
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v18.1.8
+    hooks:
+      - id: clang-format
+        types_or: [c, c++]
+        exclude: hitec-can-servo-reg-public\.h$
+
+  # Same plugins rosdep installs for ament_flake8; config in setup.cfg
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        additional_dependencies:
+          - flake8-builtins
+          - flake8-comprehensions
+          - flake8-docstrings
+          - flake8-import-order
+          - flake8-quotes

@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to the same branch/PR cancels the run in progress
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build & test (Jazzy)
+    runs-on: ubuntu-24.04
+    container: ros:jazzy-ros-base
+    defaults:
+      run:
+        shell: bash
+        working-directory: ros_ws
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ros_ws/src/PRIZM
+
+      - name: Install dependencies (rosdep)
+        run: |
+          apt-get update
+          rosdep update --rosdistro jazzy
+          rosdep install --from-paths src --ignore-src -y --rosdistro jazzy
+
+      - name: Build
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build \
+            --event-handlers console_cohesion+ \
+            --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      # Runs gtest, launch tests and the ament linters (clang_format, cppcheck,
+      # flake8, pep257, lint_cmake, xmllint) together.
+      - name: Test & lint
+        env:
+          # Ubuntu 24.04 ships cppcheck 2.13, which ament skips by default as
+          # "slow". The codebase is small, so run it anyway.
+          AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS: "1"
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon test --event-handlers console_cohesion+
+
+      # Gate: exits non-zero if any test or linter failed, and prints why.
+      - name: Test results
+        if: always()
+        run: colcon test-result --verbose
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            ros_ws/build/*/test_results/**/*.xml
+            ros_ws/log/latest_test/
+          if-no-files-found: warn
+
+  test-report:
+    name: Publish test report
+    needs: build-test
+    if: always() && needs.build-test.result != 'skipped' && needs.build-test.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+      - uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          check_name: Test & lint results
+          files: test-results/**/test_results/**/*.xml
+
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pre-commit/action@v3.0.1

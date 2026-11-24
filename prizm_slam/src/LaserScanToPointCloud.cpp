@@ -28,7 +28,7 @@ void LaserScanToPointCloud::scanCallback_(
     pointCloud_.header.stamp =
         scan_in.header.stamp +
         rclcpp::Duration::from_seconds(scan_in.ranges.size() *
-                                        scan_in.time_increment);
+                                       scan_in.time_increment);
     pointCloudPub_->publish(pointCloud_);
 }
 

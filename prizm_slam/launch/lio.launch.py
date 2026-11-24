@@ -1,12 +1,8 @@
-from sys import executable
-
-from launch_ros.substitutions import FindPackageShare
-
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, ExecuteProcess
+from launch.actions import ExecuteProcess, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import PathJoinSubstitution, TextSubstitution
-from launch_ros.actions import Node
+from launch.substitutions import PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
@@ -37,7 +33,8 @@ def generate_launch_description():
             }.items()
         ),
         ExecuteProcess(
-            cmd=['ros2', 'bag', 'play', 'src/PRIZM/bags/2026_09_24_StraightPipe_1/', '--exclude-topics', '/tf_static'],
+            cmd=['ros2', 'bag', 'play', 'src/PRIZM/bags/2026_09_24_StraightPipe_1/',
+                 '--exclude-topics', '/tf_static'],
             output='screen'
         )
     ])

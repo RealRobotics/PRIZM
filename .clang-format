@@ -1,0 +1,8 @@
+# C++ style for PRIZM. Checked by the `clang_format` test (colcon test) and by pre-commit.
+# Matches the existing code: Google style with a 4-space indent.
+---
+Language: Cpp
+BasedOnStyle: Google
+IndentWidth: 4
+AccessModifierOffset: -1
+ColumnLimit: 80

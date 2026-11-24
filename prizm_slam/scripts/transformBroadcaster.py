@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import math
-import sys
 
 from geometry_msgs.msg import TransformStamped
 
@@ -10,6 +9,7 @@ import rclpy
 from rclpy.node import Node
 
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
+
 
 def quaternion_from_euler(ai, aj, ak):
     ai /= 2.0
@@ -33,6 +33,7 @@ def quaternion_from_euler(ai, aj, ak):
     q[3] = cj*cc + sj*ss
 
     return q
+
 
 class StaticFramePublisher(Node):
     """
@@ -85,9 +86,9 @@ def main():
     #     logger.info('Your static turtle name cannot be "world"')
     #     sys.exit(2)
 
-    map_to_laser = [1, "laser", 0, 0, 0, 0, 0, 0]
-    map_to_imu = [1, "imu", 0, 0, 0, 0, 0, 0]
-    map_to_base = [1, "base", 0, 0, 0, 0, 0, 0]
+    map_to_laser = [1, 'laser', 0, 0, 0, 0, 0, 0]
+    map_to_imu = [1, 'imu', 0, 0, 0, 0, 0, 0]
+    # map_to_base = [1, 'base', 0, 0, 0, 0, 0, 0]
 
     # pass parameters and initialize node
     rclpy.init(args=None)

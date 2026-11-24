@@ -16,13 +16,15 @@ set(msg_files
     "msg/ClawExtension.msg"
     "msg/HitechAngle.msg"
     "msg/HitechPosition.msg"
+    "msg/StreamSettings.msg"
 )
 
 set(srv_files
-	"srv/GetClawExtension.srv"
+    "srv/GetClawExtension.srv"
     "srv/GetHitechAngle.srv"
     "srv/SetClawExtension.srv"
     "srv/SetHitechAngle.srv"
+    "srv/SetStreamRegisters.srv"
     "srv/SetHitechPosition.srv"
 )
 
@@ -31,4 +33,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   ${srv_files}
   DEPENDENCIES builtin_interfaces std_msgs
 )
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
 ament_package()

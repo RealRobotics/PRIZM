@@ -1,27 +1,23 @@
-from sys import executable
-
-from launch_ros.substitutions import FindPackageShare
-
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import PathJoinSubstitution, TextSubstitution
-from launch_ros.actions import Node
+from launch.substitutions import PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
 
     return LaunchDescription([
 
-# IncludeLaunchDescription(
-#             PythonLaunchDescriptionSource([
-#                 PathJoinSubstitution([
-#                     FindPackageShare('prizm_slam'),
-#                     'launch',
-#                     'frames.launch.py'
-#                 ])
-#             ])
-#         ),
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource([
+        #         PathJoinSubstitution([
+        #             FindPackageShare('prizm_slam'),
+        #             'launch',
+        #             'frames.launch.py'
+        #         ])
+        #     ])
+        # ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
@@ -31,7 +27,7 @@ def generate_launch_description():
                 ])
             ]),
             launch_arguments={
-                'config_file' : 'src/PRIZM/prizm_slam/config/lio_offline.yaml',
+                'config_file': 'src/PRIZM/prizm_slam/config/lio_offline.yaml',
                 'rviz': 'true',
                 'rviz_config_file': 'src/PRIZM/prizm_slam/config/lio_rviz.rviz',
                 'mode': 'offline',

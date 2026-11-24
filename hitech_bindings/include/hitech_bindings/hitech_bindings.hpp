@@ -4,8 +4,12 @@
 #include "hitec-can-servo-reg-public.h"
 #include "prizm_interfaces/msg/claw_extension.hpp"
 #include "prizm_interfaces/msg/hitech_angle.hpp"
+#include "prizm_interfaces/msg/hitech_position.hpp"
 #include "prizm_interfaces/srv/detail/set_hitech_angle__struct.hpp"
 #include "prizm_interfaces/srv/set_hitech_angle.hpp"
+
+#include "prizm_interfaces/srv/detail/set_hitech_position__struct.hpp"
+#include "prizm_interfaces/srv/set_hitech_position.hpp"
 
 // typedef prizm_interfaces::msg::ClawExtension ClawExtension;
 // typedef prizm_interfaces::msg
@@ -51,7 +55,9 @@ struct hitechData {
 typedef std::map<uint8_t, hitechData> hitechMap;
 typedef std_msgs::msg::UInt8MultiArray uint8Arr;
 typedef prizm_interfaces::msg::HitechAngle HitechAngle;
+typedef prizm_interfaces::msg::HitechPosition HitechPosition;
 typedef prizm_interfaces::srv::SetHitechAngle SetHitechAngle;
+typedef prizm_interfaces::srv::SetHitechPosition SetHitechPosition;
 
 class HitechBindings : public rclcpp::Node {
    private:
@@ -64,6 +70,7 @@ class HitechBindings : public rclcpp::Node {
 
     // setters
     void readHandler(uint8_t servo_id, uint8_t addr, uint16_t data);
+    void updateServoPos();
 
     // getters
 
@@ -77,12 +84,14 @@ class HitechBindings : public rclcpp::Node {
     // publishers
     rclcpp::Publisher<HitechAngle>::SharedPtr anglePub_;
     rclcpp::Publisher<uint8Arr>::SharedPtr serialPub_;
+    rclcpp::Publisher<HitechPosition>::SharedPtr positionPub_;
 
     // subscribers
     rclcpp::Subscription<uint8Arr>::SharedPtr serialSub_;
 
     // services
     rclcpp::Service<SetHitechAngle>::SharedPtr setAngleSrv_;
+    rclcpp::Service<SetHitechPosition>::SharedPtr setPositionSrv_;
 
     // clients
 
@@ -90,6 +99,9 @@ class HitechBindings : public rclcpp::Node {
     void serialReadCB_(const uint8Arr& msg);
     void setAngleCB_(const SetHitechAngle::Request::SharedPtr req,
                      SetHitechAngle::Response::SharedPtr res);
+    void setPositionCB_(const SetHitechPosition::Request::SharedPtr req,
+                     SetHitechPosition::Response::SharedPtr res);
+    
 
    public:
     HitechBindings() : Node("HitechBindings") {}

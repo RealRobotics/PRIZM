@@ -54,27 +54,6 @@ def deg_to_pos(deg):
     return max(0, min(16383, int(deg * POS_PER_DEG)))
 
 
-def write_position_turn(position, turn=0):
-    """Build a 'W' frame writing REG_POSITION_NEW and REG_TURN_NEW."""
-    data = struct.pack(
-        "<BBBHBh",
-        ord("W"), SERVO_ID,
-        REG_POSITION_NEW, position,  # uint16, little endian
-        REG_TURN_NEW, turn,          # int16, little endian
-    )
-    # print(position)
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-
-def write_position(position):
-    data = struct.pack(
-        "<BBBH",
-        ord('w'), SERVO_ID,
-        REG_POSITION_NEW, position,
-    )
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-
 def write_run_mode(mode):
     data = struct.pack(
         "<BBBH",
@@ -209,31 +188,7 @@ def next_frame_start(buf, start):
     return -1
 
 
-i = 0
-targets = [(deg_to_pos(90), 0), (deg_to_pos(90), 1), (deg_to_pos(270), 0)]  # (position, turn)
 with can_bus.listen(timeout=0.1) as listener:
-    print("Setup. Checking turn mode")
-    can_bus.send(read_one(REG_RUN_MODE))
-    time.sleep(0.05)
-    while listener.in_waiting():
-        msg = listener.receive()
-        if msg is not None:
-            print_reply(msg)
-        else: 
-            print("Did not hear back. Is the PSU on?")
-
-    can_bus.send(write_stream_mode())
-    time.sleep(0.05)
-    can_bus.send(write_stream_time())
-    time.sleep(0.05)
-    # Stream only position + turn count: one 'V' frame per stream cycle.
-    # Slots 3-8 are cleared so the servo doesn't send extra frames.
-    can_bus.send(write_stream_addr_0(REG_POSITION, REG_TURN_COUNT))
-    can_bus.send(write_stream_addr_1(0, 0))
-    time.sleep(0.05)
-
-    can_bus.send(write_position_turn(0,0))
-    time.sleep(0.05)
 
     frames = 0          # stream frames handled since last status print
     other = 0           # non-'V'/'v' frames since last status print
@@ -267,15 +222,6 @@ with can_bus.listen(timeout=0.1) as listener:
                 rx_buf = rx_buf[W_FRAME_LEN:]
                 can_bus.send(Message(id=CAN_BUS_ID, data=frame, extended=EXTENDED))
 
-
-        # 1. Send first, so outgoing commands never wait on incoming data.
-        # if now >= LAST_MOTOR_TIME + MOTOR_DURATION:
-        #     target = targets[i]
-        #     # print(f"Setting {target[0], target[1]}")
-        #     ok = can_bus.send(write_position_turn(target[0], target[1]))
-        #     LAST_MOTOR_TIME = now
-        #     i = i + 1
-        #     if(i > len(targets) - 1): i = 0
 
         
         # 3. Read at most MAX_FRAMES_PER_PASS frames, then go round again.

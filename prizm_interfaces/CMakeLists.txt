@@ -23,6 +23,7 @@ set(srv_files
     "srv/GetHitechAngle.srv"
     "srv/SetClawExtension.srv"
     "srv/SetHitechAngle.srv"
+    "srv/SetHitechPosition.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

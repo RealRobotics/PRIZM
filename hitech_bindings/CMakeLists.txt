@@ -40,6 +40,7 @@ install(DIRECTORY config
 
 install(PROGRAMS
   scripts/setPosition.py
+  scripts/joyControl.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

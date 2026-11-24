@@ -128,10 +128,15 @@ void HitechBindings::initServices() {
     setAngleSrv_ = this->create_service<SetHitechAngle>(
         "/set_angle", std::bind(&HitechBindings::setAngleCB_, this,
                                 std::placeholders::_1, std::placeholders::_2));
+    setPositionSrv_ = this->create_service<SetHitechPosition>(
+        "/set_position",
+        std::bind(&HitechBindings::setPositionCB_, this, std::placeholders::_1,
+                  std::placeholders::_2));
 }
 
 void HitechBindings::initPublishers() {
     anglePub_ = this->create_publisher<HitechAngle>("HitechData", 10);
+    positionPub_ = this->create_publisher<HitechPosition>("HitechPosition", 10);
     serialPub_ = this->create_publisher<uint8Arr>("/serial_write", 10);
 }
 
@@ -258,17 +263,24 @@ void HitechBindings::readHandler(uint8_t servo_id, uint8_t addr,
 
 void HitechBindings::publishServoInfo() {
     HitechAngle data;
+    HitechPosition position;
 
     data.motor_id.resize(numServos_);
     data.motor_angle.resize(numServos_);
     data.motor_turn.resize(numServos_);
     data.size = numServos_;
 
+    position.motor_id.resize(numServos_);
+    position.motor_pos.resize(numServos_);
+    position.size = numServos_;
+
     int counter = 0;
     for (auto const& [key, val] : servoMap_) {
         data.motor_id.at(counter) = key;
+        position.motor_id.at(counter) = key;
         data.motor_angle.at(counter) = val.currAngle;
         data.motor_turn.at(counter) = val.currTurn;
+        // position.motor_pos.at(counter) = val.currAngle
         counter++;
     }
 
@@ -296,10 +308,34 @@ void HitechBindings::setAngleCB_(const SetHitechAngle::Request::SharedPtr req,
             doubleWriteBuilder(WriteTasks::NEW_POSITION, WriteTasks::NEW_TURN,
                                servo_id, target_angle, target_turn);
         // res->angles
-        res->positions[i] = target_angle / 4095 * 90 + target_turn * 360;
+        res->positions[i] = target_angle / 4096 * 90 + target_turn * 360;
         publishSerialCommand(instruction);
     }
     res->success = true;
+}
 
-    //@todo finish this function
+void HitechBindings::setPositionCB_(
+    const SetHitechPosition::Request::SharedPtr req,
+    SetHitechPosition::Response::SharedPtr res) {
+    int num_incoming_positions = req->hitech_position.size;
+    res->positions.resize(num_incoming_positions);
+    for (int i = 0; i < num_incoming_positions; i++) {
+        int servo_id = req->hitech_position.motor_id[i];
+        int position = req->hitech_position.motor_pos[i];
+        int turn = position / 360;
+        int angle = position % 360;
+        auto instruction =
+            doubleWriteBuilder(WriteTasks::NEW_POSITION, WriteTasks::NEW_TURN,
+                               servo_id, angle, turn);
+        publishSerialCommand(instruction);
+        res->positions[i] = position;
+    }
+    res->success = true;
+}
+
+void HitechBindings::updateServoPos() {
+    for (auto const& [key, val] : servoMap_) {
+        servoMap_[key].currPos = servoMap_[key].currAngle * (4096 / 90) +
+                                 servoMap_[key].currTurn * 360;
+    }
 }

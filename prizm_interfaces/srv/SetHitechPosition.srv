@@ -1,0 +1,4 @@
+prizm_interfaces/HitechPosition hitech_position
+---
+int32[] positions
+bool success

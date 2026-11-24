@@ -4,8 +4,6 @@
 #include "hitec-can-servo-reg-public.h"
 #include "prizm_interfaces/msg/claw_extension.hpp"
 #include "prizm_interfaces/msg/hitech_angle.hpp"
-#include "prizm_interfaces/srv/detail/set_hitech_angle__struct.hpp"
-#include "prizm_interfaces/srv/detail/set_stream_registers__struct.hpp"
 #include "prizm_interfaces/srv/set_hitech_angle.hpp"
 #include "prizm_interfaces/srv/set_stream_registers.hpp"
 
@@ -167,7 +165,7 @@ class HitechBindings : public rclcpp::Node {
     void setAngleCB_(const SetHitechAngle::Request::SharedPtr req,
                      SetHitechAngle::Response::SharedPtr res);
     void setStreamCB_(const SetStreamRegisters::Request::SharedPtr req,
-                      SetStreamRegisters::Response:: SharedPtr res);
+                      SetStreamRegisters::Response::SharedPtr res);
 
    public:
     HitechBindings() : Node("HitechBindings") {}

@@ -415,6 +415,7 @@ void HitechBindings::setStreamCB_(
             }
         }
     }
+    res->success = true;
 }
 
 void HitechBindings::setStreamTime(uint8_t servo_id, int stream_time) {

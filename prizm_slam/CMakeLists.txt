@@ -45,14 +45,13 @@ install(PROGRAMS
 
 ament_export_include_directories(include)
 if(BUILD_TESTING)
+  # Linters registered as tests from the <test_depend>s in package.xml.
+  # Curated subset: copyright / cpplint / uncrustify are intentionally off.
   find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
   set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
   set(ament_cmake_cpplint_FOUND TRUE)
+  set(ament_cmake_uncrustify_FOUND TRUE)
+  set(ament_cmake_clang_format_CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../.clang-format")
   ament_lint_auto_find_test_dependencies()
 endif()
 

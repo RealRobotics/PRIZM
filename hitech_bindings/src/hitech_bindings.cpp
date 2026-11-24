@@ -128,6 +128,11 @@ void HitechBindings::initServices() {
     setAngleSrv_ = this->create_service<SetHitechAngle>(
         "/set_angle", std::bind(&HitechBindings::setAngleCB_, this,
                                 std::placeholders::_1, std::placeholders::_2));
+
+    setStreamSrv_ = this->create_service<SetStreamRegisters>(
+        "/set_stream_params",
+        std::bind(&HitechBindings::setStreamCB_, this, std::placeholders::_1,
+                  std::placeholders::_2));
 }
 
 void HitechBindings::initPublishers() {
@@ -304,6 +309,114 @@ void HitechBindings::setAngleCB_(const SetHitechAngle::Request::SharedPtr req,
     //@todo finish this function
 }
 
+void HitechBindings::setStreamCB_(
+    const SetStreamRegisters::Request::SharedPtr req,
+    SetStreamRegisters::Response::SharedPtr res) {
+    // if(req->toggle != )
+    for (auto& setting : req->stream_settings) {
+        // 1. check if the id is in the cached list
+        int incoming_id = setting.servo_id;
+        if (servoMap_.find(incoming_id) != servoMap_.end()) {
+            // 2. check the streaming time
+            if (servoMap_.at(incoming_id).stream_time != setting.stream_time) {
+                servoMap_.at(incoming_id).stream_time = setting.stream_time;
+                setStreamTime(incoming_id, setting.stream_time);
+            }
+            // 3. check the toggle
+            if (servoMap_.at(incoming_id).stream_time != setting.toggle) {
+                servoMap_.at(incoming_id).stream_toggle = setting.toggle;
+                toggleStreamMode(incoming_id, setting.toggle);
+            }
+            // 4. check the parameters
+            /**
+             * @note I have spent a while thinking about how to make this
+             * clever, checking cached values and all that jazz. Then I realsied
+             * we will call this once in a blue moon and I doubt the extra
+             * computation will actually hurt us all that much.
+             * In short, apologies if it is a bit long, but at least it'll
+             * definitely be ligible.
+             *
+             */
+            // 4.0 param 0
+            switch (setting.addr_0.size()) {
+                case 1:
+                    servoMap_.at(incoming_id).stream_00 = setting.addr_0.at(0);
+                    setStreamReg(incoming_id, WriteTasks::REG_STREAM_0,
+                                 setting.addr_0.at(0), 0x00);
+                    break;
+                case 2:
+                    servoMap_.at(incoming_id).stream_00 = setting.addr_0.at(0);
+                    servoMap_.at(incoming_id).stream_01 = setting.addr_0.at(1);
+                    setStreamReg(incoming_id, WriteTasks::REG_STREAM_0,
+                                 setting.addr_0.at(0), setting.addr_0.at(1));
+                    break;
+                default:
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "Either more than 2 or less than 1 stream "
+                                 "registers were sent to addr_0. Ignoring.");
+                    break;
+            }
+            // 4.1 param 1
+            switch (setting.addr_1.size()) {
+                case 1:
+                    servoMap_.at(incoming_id).stream_10 = setting.addr_1.at(0);
+                    setStreamReg(incoming_id, WriteTasks::REG_STREAM_1,
+                                 setting.addr_1.at(0), 0x00);
+                    break;
+                case 2:
+                    servoMap_.at(incoming_id).stream_10 = setting.addr_1.at(0);
+                    servoMap_.at(incoming_id).stream_11 = setting.addr_1.at(1);
+                    setStreamReg(incoming_id, WriteTasks::REG_STREAM_1,
+                                 setting.addr_1.at(0), setting.addr_1.at(1));
+                    break;
+                default:
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "Either more than 2 or less than 1 stream "
+                                 "registers were sent to addr_1. Ignoring.");
+                    break;
+            }
+            // 4.2 param 2
+            switch (setting.addr_2.size()) {
+                case 1:
+                    servoMap_.at(incoming_id).stream_20 = setting.addr_2.at(0);
+                    setStreamReg(incoming_id, WriteTasks::REG_STREAM_2,
+                                 setting.addr_2.at(0), 0x00);
+                    break;
+                case 2:
+                    servoMap_.at(incoming_id).stream_20 = setting.addr_2.at(0);
+                    servoMap_.at(incoming_id).stream_21 = setting.addr_2.at(1);
+                    setStreamReg(incoming_id, WriteTasks::REG_STREAM_2,
+                                 setting.addr_2.at(0), setting.addr_2.at(1));
+                    break;
+                default:
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "Either more than 2 or less than 1 stream "
+                                 "registers were sent to addr_2. Ignoring.");
+                    break;
+            }
+            // 4.3 param 3
+            switch (setting.addr_3.size()) {
+                case 1:
+                    servoMap_.at(incoming_id).stream_30 = setting.addr_3.at(0);
+                    setStreamReg(incoming_id, WriteTasks::REG_STREAM_3,
+                                 setting.addr_3.at(0), 0x00);
+                    break;
+                case 2:
+                    servoMap_.at(incoming_id).stream_30 = setting.addr_3.at(0);
+                    servoMap_.at(incoming_id).stream_31 = setting.addr_3.at(1);
+                    setStreamReg(incoming_id, WriteTasks::REG_STREAM_3,
+                                 setting.addr_3.at(0), setting.addr_3.at(1));
+                    break;
+                default:
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "Either more than 2 or less than 1 stream "
+                                 "registers were sent to addr_3. Ignoring.");
+                    break;
+            }
+        }
+    }
+}
+
 void HitechBindings::setStreamTime(uint8_t servo_id, int stream_time) {
     singleWriteBuilder(WriteTasks::STREAM_TIME, servo_id, stream_time);
 }
@@ -312,8 +425,40 @@ void HitechBindings::toggleStreamMode(uint8_t servo_id, bool toggle) {
     singleWriteBuilder(WriteTasks::STREAM_TIME, servo_id, toggle);
 }
 
-void HitechBindings::setStreamReg(uint8_t servo_id, WriteTasks stream_addr, uint8_t reg1,
-                                  uint8_t reg2) {
+void HitechBindings::setStreamReg(uint8_t servo_id, WriteTasks stream_addr,
+                                  uint8_t reg1, uint8_t reg2) {
     uint16_t stream_reg_combined = reg1 | (reg2 << 8);
     singleWriteBuilder(stream_addr, servo_id, stream_reg_combined);
+}
+
+WriteTasks HitechBindings::WriteTaskfromUint(uint8_t val) {
+    switch (val) {
+        case WriteTasks::NEW_POSITION:
+            return WriteTasks::NEW_POSITION;
+        case WriteTasks::NEW_TURN:
+            return WriteTasks::NEW_TURN;
+        case WriteTasks::SERVO_MAX:
+            return WriteTasks::SERVO_MAX;
+        case WriteTasks::SERVO_MIN:
+            return WriteTasks::SERVO_MIN;
+        case WriteTasks::SERVO_ZERO:
+            return WriteTasks::SERVO_ZERO;
+        case WriteTasks::NEW_SPEED:
+            return WriteTasks::NEW_SPEED;
+        case WriteTasks::STREAM_MODE:
+            return WriteTasks::STREAM_MODE;
+        case WriteTasks::STREAM_TIME:
+            return WriteTasks::STREAM_TIME;
+        case WriteTasks::REG_STREAM_0:
+            return WriteTasks::REG_STREAM_0;
+        case WriteTasks::REG_STREAM_1:
+            return WriteTasks::REG_STREAM_1;
+        case WriteTasks::REG_STREAM_2:
+            return WriteTasks::REG_STREAM_2;
+        case WriteTasks::REG_STREAM_3:
+            return WriteTasks::REG_STREAM_3;
+
+        default:
+            return WriteTasks::ERROR;
+    }
 }

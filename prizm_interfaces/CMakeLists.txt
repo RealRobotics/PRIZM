@@ -16,6 +16,7 @@ set(msg_files
     "msg/ClawExtension.msg"
     "msg/HitechAngle.msg"
     "msg/HitechPosition.msg"
+    "msg/StreamSettings.msg"
 )
 
 set(srv_files
@@ -23,6 +24,7 @@ set(srv_files
     "srv/GetHitechAngle.srv"
     "srv/SetClawExtension.srv"
     "srv/SetHitechAngle.srv"
+    "srv/SetStreamRegisters.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

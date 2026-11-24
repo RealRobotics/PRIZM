@@ -5,7 +5,9 @@
 #include "prizm_interfaces/msg/claw_extension.hpp"
 #include "prizm_interfaces/msg/hitech_angle.hpp"
 #include "prizm_interfaces/srv/detail/set_hitech_angle__struct.hpp"
+#include "prizm_interfaces/srv/detail/set_stream_registers__struct.hpp"
 #include "prizm_interfaces/srv/set_hitech_angle.hpp"
+#include "prizm_interfaces/srv/set_stream_registers.hpp"
 
 // typedef prizm_interfaces::msg::ClawExtension ClawExtension;
 // typedef prizm_interfaces::msg
@@ -29,8 +31,9 @@ enum WriteTasks {
     REG_STREAM_0 = e_STREAM_0,
     REG_STREAM_1 = e_STREAM_1,
     REG_STREAM_2 = e_STREAM_2,
-    REG_STREAM_3 = e_STREAM_3
+    REG_STREAM_3 = e_STREAM_3,
 
+    ERROR = 0xFF
 };
 
 enum ReadTasks {
@@ -67,9 +70,18 @@ struct hitechData {
     uint16_t servoZero = 0x2000;
     uint16_t voltage = 0x00;  // 100 = 1.0V
     uint16_t torque = 0x00;   // PWM. 4095 = 100%
-    uint8_t stream_mode = false;
+    uint8_t stream_toggle = false;
     uint16_t stream_time = 0x00;  // Interval to set. 0 to 10000 ms, 10001 to
                                   // 11000 = (Value-10000) Hz
+    uint8_t stream_00 = 0x00;
+    uint8_t stream_01 = 0x00;
+    uint8_t stream_10 = 0x00;
+    uint8_t stream_11 = 0x00;
+    uint8_t stream_20 = 0x00;
+    uint8_t stream_21 = 0x00;
+    uint8_t stream_30 = 0x00;
+    uint8_t stream_31 = 0x00;
+
     uint16_t e_stop = 0x00;
 };
 
@@ -77,6 +89,7 @@ typedef std::map<uint8_t, hitechData> hitechMap;
 typedef std_msgs::msg::UInt8MultiArray uint8Arr;
 typedef prizm_interfaces::msg::HitechAngle HitechAngle;
 typedef prizm_interfaces::srv::SetHitechAngle SetHitechAngle;
+typedef prizm_interfaces::srv::SetStreamRegisters SetStreamRegisters;
 
 class HitechBindings : public rclcpp::Node {
    private:
@@ -117,13 +130,15 @@ class HitechBindings : public rclcpp::Node {
 
     /**
      * @brief Set a pair of streaming registers for a given servo id
-     * 
+     *
      * @param servo_id servo id to operate on
      * @param stream_addr See ```WriteTasks::REG_STREAM_0/1/2/3```.
-     * @param reg1 First address to stream. See ```ReadTasks``` for valid inputs 
-     * @param reg2 Second address to stream. See ```ReadTasks``` for valid inputs
+     * @param reg1 First address to stream. See ```ReadTasks``` for valid inputs
+     * @param reg2 Second address to stream. See ```ReadTasks``` for valid
+     * inputs
      */
-    void setStreamReg(uint8_t servo_id, WriteTasks stream_addr, uint8_t reg1, uint8_t reg2);
+    void setStreamReg(uint8_t servo_id, WriteTasks stream_addr, uint8_t reg1,
+                      uint8_t reg2);
 
     // getters
 
@@ -143,6 +158,7 @@ class HitechBindings : public rclcpp::Node {
 
     // services
     rclcpp::Service<SetHitechAngle>::SharedPtr setAngleSrv_;
+    rclcpp::Service<SetStreamRegisters>::SharedPtr setStreamSrv_;
 
     // clients
 
@@ -150,6 +166,8 @@ class HitechBindings : public rclcpp::Node {
     void serialReadCB_(const uint8Arr& msg);
     void setAngleCB_(const SetHitechAngle::Request::SharedPtr req,
                      SetHitechAngle::Response::SharedPtr res);
+    void setStreamCB_(const SetStreamRegisters::Request::SharedPtr req,
+                      SetStreamRegisters::Response:: SharedPtr res);
 
    public:
     HitechBindings() : Node("HitechBindings") {}
@@ -169,6 +187,8 @@ class HitechBindings : public rclcpp::Node {
 
     void publishServoInfo();
     void publishSerialCommand(std::vector<uint8_t> message);
+
+    WriteTasks WriteTaskfromUint(uint8_t val);
     // structs
     hitechMap servoMap_, motorMap_;
 };

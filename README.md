@@ -29,8 +29,8 @@ colcon test-result --verbose
 C++ style is defined in [.clang-format](.clang-format). To catch formatting problems before you push:
 
 ```bash
-pip install pre-commit
-pre-commit install            # runs on every commit
+apt install pre-commit
+pre-commit install            # runs on every commit. Run this in the repo, not the ws
 pre-commit run --all-files    # run once over the whole repo
 ```
 

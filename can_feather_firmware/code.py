@@ -116,16 +116,20 @@ serial_port = usb_cdc.data # writes over to /dev/ttyACM1
 if serial_port is None:
     raise RuntimeError("usb_cdc.data is disabled: check boot.py and hard-reset the board")
 serial_port.timeout = 0     # never block the main loop on serial reads
-W_FRAME_LEN = 8             # every instruction is an 8-byte 'W' frame
+# Accepted instructions: first byte -> total frame length.
+#   'W' two-register write: ['W', id, addrA, A_lo, A_hi, addrB, B_lo, B_hi]
+#   'w' one-register write: ['w', id, addr, lo, hi]
+FRAME_LENS = {0x57: 8, 0x77: 5}
+MIN_FRAME_LEN = 5
 RX_STALE_S = 0.5            # drop a partial frame if no more bytes arrive for this long
 rx_buf = bytearray()        # incoming bytes not yet forwarded as a full frame
 rx_last = 0                 # time the last serial bytes arrived
 
 
 def next_frame_start(buf, start):
-    """Index of the next 'W' at or after start, or -1 if none."""
+    """Index of the next 'W' or 'w' at or after start, or -1 if none."""
     for k in range(start, len(buf)):
-        if buf[k] == 0x57:  # 'W'
+        if buf[k] in FRAME_LENS:
             return k
     return -1
 
@@ -160,9 +164,10 @@ with can_bus.listen(timeout=0.1) as listener:
         #     print(i, msg.data)
 
 
-        # 0. Check if any new instructions are present
+    
         #    Non-blocking: buffer whatever bytes are waiting, then forward
-        #    every complete 8-byte 'W' frame. Partial frames wait for more data.
+        #    every complete 'W' (8-byte) or 'w' (5-byte) frame. Partial frames
+        #    wait for more data.
         if now >= LAST_INPUT_TIME + INPUT_COMMAND_FREQUENCY:
             LAST_INPUT_TIME = now
             n = serial_port.in_waiting
@@ -174,23 +179,34 @@ with can_bus.listen(timeout=0.1) as listener:
                 rx_buf = bytearray()
 
             # print(n, rx_buf)
-            while len(rx_buf) >= W_FRAME_LEN:
-        #         # Resync if the buffer doesn't start with a plausible frame
-        #         # (a 0x57 inside a data value would have the wrong servo ID).
+            while len(rx_buf) >= MIN_FRAME_LEN:
+                frame_len = FRAME_LENS.get(rx_buf[0])
                 sid = rx_buf[1]
-                if rx_buf[0] != 0x57 or (sid != 0 and sid not in SERVO_CAN_IDS):
+                # Resync if the buffer doesn't start with a plausible frame
+                # (a 'W'/'w' byte inside a data value has the wrong servo ID).
+                if frame_len is None or (sid != 0 and sid not in SERVO_CAN_IDS):
                     j = next_frame_start(rx_buf, 1)
                     print(f"resync: dropped {j if j >= 0 else len(rx_buf)} byte(s)")
                     rx_buf = rx_buf[j:] if j >= 0 else bytearray()
                     continue
-                frame = bytes(rx_buf[:W_FRAME_LEN])
-                rx_buf = rx_buf[W_FRAME_LEN:]
-                
-                if frame[1] == 0x42: 
-                    msg = Message(id=SERVO_CAN_IDS[SERVO_ID_1], data=frame, extended=EXTENDED)
-                    can_bus.send(msg)
-                elif frame[1] == 0x63 : 
-                    can_bus.send(Message(id=SERVO_CAN_IDS[SERVO_ID_2], data=frame, extended=EXTENDED))
+                if len(rx_buf) < frame_len:
+                    break   # e.g. a 'W' with only 5-7 bytes so far: wait for the rest
+                frame = bytes(rx_buf[:frame_len])
+                rx_buf = rx_buf[frame_len:]
+                # Route to the addressed servo's CAN ID; broadcast (0) goes
+                # to every distinct CAN ID in use.
+                ids = set(SERVO_CAN_IDS.values()) if sid == 0 else (SERVO_CAN_IDS[sid],)
+                for can_id in ids:
+                    can_bus.send(Message(id=can_id, data=frame, extended=EXTENDED))
 
-        #         # print(target_id)
-        #         else: print(f"servo id is not valid {frame[1]}")
+        for _ in range(MAX_FRAMES_PER_PASS):
+            if not listener.in_waiting():
+                break
+            msg = listener.receive()
+            if msg is None:
+                break
+            if handle_frame(msg):
+                frames += 1
+                serial_port.write(msg.data)
+            else:
+                other += 1

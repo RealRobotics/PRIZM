@@ -160,6 +160,7 @@ class HitechBindings : public rclcpp::Node {
 
     // subscribers
     rclcpp::Subscription<uint8Arr>::SharedPtr serialSub_;
+    rclcpp::Subscription<HitechPosition>::SharedPtr hitechPosSub_;
 
     // services
     rclcpp::Service<SetHitechAngle>::SharedPtr setAngleSrv_;
@@ -176,6 +177,7 @@ class HitechBindings : public rclcpp::Node {
                       SetStreamRegisters::Response::SharedPtr res);
     void setPositionCB_(const SetHitechPosition::Request::SharedPtr req,
                         SetHitechPosition::Response::SharedPtr res);
+    void posSubCB_(const HitechPosition& msg);
 
    public:
     HitechBindings() : Node("HitechBindings") {}

@@ -122,6 +122,10 @@ void HitechBindings::initSubscribers() {
     serialSub_ = this->create_subscription<uint8Arr>(
         "serial_read", 10,
         std::bind(&HitechBindings::serialReadCB_, this, std::placeholders::_1));
+
+    hitechPosSub_ = this->create_subscription<HitechPosition>(
+        "/position_input", 10,
+        std::bind(&HitechBindings::posSubCB_, this, std::placeholders::_1));
 }
 
 void HitechBindings::initServices() {
@@ -327,6 +331,7 @@ void HitechBindings::setPositionCB_(
     for (int i = 0; i < num_incoming_positions; i++) {
         int servo_id = req->hitech_position.motor_id[i];
         int position = req->hitech_position.motor_pos[i];
+        position = position * 90 / 4096;
         int turn = position / 360;
         int angle = position % 360;
         auto instruction =
@@ -497,5 +502,23 @@ WriteTasks HitechBindings::WriteTaskfromUint(uint8_t val) {
 
         default:
             return WriteTasks::ERROR;
+    }
+}
+
+void HitechBindings::posSubCB_(const HitechPosition& msg) {
+    int num_incoming_pos = msg.size;
+    for (int i = 0; i < num_incoming_pos; i++) {
+        int req_id = msg.motor_id[i];
+        if (servoMap_.find(req_id) != servoMap_.end()) {
+            int angle = msg.motor_pos.at(i) % 16384;
+            int turn = msg.motor_pos.at(i) / 16384;
+            servoMap_.at(req_id).goalAngle = angle;
+            servoMap_.at(req_id).goalTurn = turn;
+            publishSerialCommand(doubleWriteBuilder(WriteTasks::NEW_POSITION,
+                                                    WriteTasks::NEW_TURN,
+                                                    req_id, angle, turn));
+            servoMap_.at(req_id).currAngle = angle;
+            servoMap_.at(req_id).currTurn = turn;
+        }
     }
 }

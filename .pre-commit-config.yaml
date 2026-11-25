@@ -14,6 +14,8 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: [--maxkb=1024]
+      # flake8-quotes / ament_flake8 want single quotes
+      - id: double-quote-string-fixer
 
   # clang-format 18 is what Ubuntu 24.04 / ROS Jazzy (ament_clang_format) uses
   - repo: https://github.com/pre-commit/mirrors-clang-format
@@ -21,6 +23,18 @@ repos:
     hooks:
       - id: clang-format
         types_or: [c, c++]
+
+  # Python auto-fixers run before flake8 so it only reports what needs a human.
+  # autopep8 fixes pycodestyle E/W codes; isort fixes import order. Config in setup.cfg
+  - repo: https://github.com/hhatto/autopep8
+    rev: v2.3.1
+    hooks:
+      - id: autopep8
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
 
   # Same plugins rosdep installs for ament_flake8; config in setup.cfg
   - repo: https://github.com/PyCQA/flake8

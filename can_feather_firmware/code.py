@@ -16,9 +16,16 @@ from adafruit_mcp2515 import MCP2515 as CAN
 from adafruit_mcp2515.canio import Message
 
 # ---- Configuration ---------------------------------------------------------
-CAN_BUS_ID = 10        # servo's NODE_ID / REG_CAN_BUS_ID (CAN arbitration ID)
 # servo's SERVO_ID / REG_ID (byte 1 of payload, 0 = broadcast)
-SERVO_ID = 67
+SERVO_ID_1 = 0x42
+SERVO_ID_2 = 0x63
+# servo ID -> that servo's NODE_ID / REG_CAN_BUS_ID (CAN arbitration ID).
+# Each servo should have its own CAN ID: two nodes streaming on the same ID
+# collide on the bus. Update these to match how each servo is configured.
+SERVO_CAN_IDS = {
+    SERVO_ID_1: 11,
+    SERVO_ID_2: 10,
+}
 EXTENDED = True        # CAN/PROTOCOL = CAN 2.0B (29-bit ID)
 BAUDRATE = 1_000_000   # CAN/BAUDRATE = 1000 kbps
 STREAM_FREQUENCY = 10 # Stream frequency set to the servo. Data will be fed back at this rate
@@ -48,64 +55,13 @@ REG_VOLTAGE = 0x12       # Motor Voltage. 100 = 1V
 
 POS_PER_DEG = 4096 / 90
 
-
-def deg_to_pos(deg):
-    """Convert 0..360 degrees to a 0..16383 position value."""
-    return max(0, min(16383, int(deg * POS_PER_DEG)))
-
-
-def write_run_mode(mode):
+def write_pos_turn(servo_id, can_id, angle, turn):
     data = struct.pack(
-        "<BBBH",
-        ord('w'), SERVO_ID,
-        REG_RUN_MODE, mode
+        "<BBBHBH",
+        ord('W'), servo_id,
+        REG_POSITION_NEW, angle, REG_TURN_NEW, turn
     )
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-def write_save_config():
-    data = struct.pack(
-        "<BBBH",
-        ord('w'), SERVO_ID,
-        REG_SAVE_CHANGES, 0xFFFF
-    )
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-def write_reset():
-    data = struct.pack(
-        "<BBBH",
-        ord('w'), SERVO_ID,
-        REG_POWER_CONFIG, 0x1
-    )
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-def write_stream_mode():
-    data = struct.pack("<BBBH", ord('w'), SERVO_ID, REG_STREAM_MODE, 0x1)
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-def write_stream_time():
-    data = struct.pack("<BBBH", ord('w'), SERVO_ID, REG_STREAM_TIME, STREAM_FREQUENCY + 10000)
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-def write_stream_addr_0(addr1, addr2):
-    data = struct.pack(">BBBH", ord('w'), SERVO_ID, REG_STREAM_ADDR_0, (addr2 << 8) + addr1)
-    print(data)
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-def write_stream_addr_1(addr1, addr2):
-    data = struct.pack(">BBBH", ord('w'), SERVO_ID, REG_STREAM_ADDR_1, (addr2 << 8) + addr1)
-    print(data)
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-
-def read_one(addr_a):
-    data = struct.pack("<BBB", ord('r'), SERVO_ID, addr_a)
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
-
-
-def read_two(addr_a, addr_b):
-    """Build an 'R' frame requesting two registers."""
-    data = struct.pack("<BBBB", ord("R"), SERVO_ID, addr_a, addr_b)
-    return Message(id=CAN_BUS_ID, data=data, extended=EXTENDED)
+    return Message(id=can_id, data=data, extended=EXTENDED)
 
 
 def print_reply(msg):
@@ -122,8 +78,9 @@ def print_reply(msg):
         print(f"  id 0x{msg.id:X}: {bytes(data).hex()}")
 
 
-# Latest streamed register values, keyed by register address. Filled by
-# handle_frame() without printing, so the receive path stays fast.
+# Latest streamed register values, keyed by (servo_id, register address), so
+# the two servos don't overwrite each other. Filled by handle_frame() without
+# printing, so the receive path stays fast.
 latest = {}
 
 
@@ -131,24 +88,16 @@ def handle_frame(msg):
     """Store register values from a 'V'/'v' frame. Returns False for other frames."""
     data = msg.data
     if len(data) == 8 and data[0] == ord("V"):
-        _, _, a, va, b, vb = struct.unpack("<BBBHBh", data)
-        latest[a] = va
-        latest[b] = vb
+        _, sid, a, va, b, vb = struct.unpack("<BBBHBh", data)
+        latest[(sid, a)] = va
+        latest[(sid, b)] = vb
         return True
     if len(data) == 5 and data[0] == ord("v"):
-        _, _, a, va = struct.unpack("<BBBH", data)
-        latest[a] = va
+        _, sid, a, va = struct.unpack("<BBBH", data)
+        latest[(sid, a)] = va
         return True
     return False
 
-
-def sw_reset():
-    """Saves current config and triggers a software reset to impart the changes
-    """
-    can_bus.send(write_save_config())
-    time.sleep(1)
-    can_bus.send(write_reset())
-    time.sleep(0.005)
 
 # ---- Hardware setup --------------------------------------------------------
 # The transceiver must be out of standby for frames to reach the bus.
@@ -162,14 +111,7 @@ spi = board.SPI()
 # loopback/silent must be False, or nothing is sent on the real bus.
 can_bus = CAN(spi, cs, baudrate=BAUDRATE)
 
-# ---- Main loop: sweep between two targets ----------------------------------
-# targets = [(deg_to_pos(90), 0), (deg_to_pos(270), 0)]  # (position, turn)
 
-
-# test_datac = struct.pack("<BBB", ord('h'),ord('i'), ord('c'))
-# test_datad = struct.pack("<BBB", ord('h'),ord('i'), ord('d'))
-
-# usb_cdc.Serial().write(test_data)
 serial_port = usb_cdc.data # writes over to /dev/ttyACM1
 if serial_port is None:
     raise RuntimeError("usb_cdc.data is disabled: check boot.py and hard-reset the board")
@@ -188,14 +130,35 @@ def next_frame_start(buf, start):
     return -1
 
 
-with can_bus.listen(timeout=0.1) as listener:
+def DEG_TO_POS(degrees):
+    return ( int(degrees % 360 * 4096 / 90), int(degrees / 360) )
 
+# i = 0
+# targets = (DEG_TO_POS(400), DEG_TO_POS(200))
+
+with can_bus.listen(timeout=0.1) as listener:
     frames = 0          # stream frames handled since last status print
     other = 0           # non-'V'/'v' frames since last status print
     last_print = time.monotonic()
-
     while True:
         now = time.monotonic()
+
+        # if now >= MOTOR_DURATION + LAST_MOTOR_TIME:
+        #     LAST_MOTOR_TIME = now
+
+        #     target_angle = targets[i][0]
+        #     target_turn = targets[i][1]
+
+            
+        #     msg = write_pos_turn(SERVO_ID_1, SERVO_CAN_IDS[SERVO_ID_1], target_angle, target_turn)
+        #     can_bus.send(msg)
+
+        #     msg = write_pos_turn(SERVO_ID_2, SERVO_CAN_IDS[SERVO_ID_2], target_angle, target_turn)
+        #     can_bus.send(msg)
+        #     i += 1
+        #     if i > 1: i = 0
+        #     print(i, msg.data)
+
 
         # 0. Check if any new instructions are present
         #    Non-blocking: buffer whatever bytes are waiting, then forward
@@ -210,41 +173,24 @@ with can_bus.listen(timeout=0.1) as listener:
                 print(f"dropping stale partial frame: {bytes(rx_buf).hex()}")
                 rx_buf = bytearray()
 
+            # print(n, rx_buf)
             while len(rx_buf) >= W_FRAME_LEN:
-                # Resync if the buffer doesn't start with a plausible frame
-                # (a 0x57 inside a data value would have the wrong servo ID).
-                if rx_buf[0] != 0x57 or rx_buf[1] not in (SERVO_ID, 0):
+        #         # Resync if the buffer doesn't start with a plausible frame
+        #         # (a 0x57 inside a data value would have the wrong servo ID).
+                sid = rx_buf[1]
+                if rx_buf[0] != 0x57 or (sid != 0 and sid not in SERVO_CAN_IDS):
                     j = next_frame_start(rx_buf, 1)
                     print(f"resync: dropped {j if j >= 0 else len(rx_buf)} byte(s)")
                     rx_buf = rx_buf[j:] if j >= 0 else bytearray()
                     continue
                 frame = bytes(rx_buf[:W_FRAME_LEN])
                 rx_buf = rx_buf[W_FRAME_LEN:]
-                can_bus.send(Message(id=CAN_BUS_ID, data=frame, extended=EXTENDED))
+                
+                if frame[1] == 0x42: 
+                    msg = Message(id=SERVO_CAN_IDS[SERVO_ID_1], data=frame, extended=EXTENDED)
+                    can_bus.send(msg)
+                elif frame[1] == 0x63 : 
+                    can_bus.send(Message(id=SERVO_CAN_IDS[SERVO_ID_2], data=frame, extended=EXTENDED))
 
-
-        
-        # 3. Read at most MAX_FRAMES_PER_PASS frames, then go round again.
-        for _ in range(MAX_FRAMES_PER_PASS):
-            if not listener.in_waiting():
-                break
-            msg = listener.receive()
-            if msg is None:
-                break
-            if handle_frame(msg):
-                frames += 1
-                serial_port.write(msg.data)
-            else:
-                other += 1
-
-
-        # # 3. Print a summary at PRINT_INTERVAL instead of once per frame.
-        # if now - last_print >= PRINT_INTERVAL:
-        #     elapsed = now - last_print
-        #     print(f"{frames / elapsed:6.1f} frames/s  "
-        #           f"pos={latest.get(REG_POSITION)}  "
-        #           f"turn={latest.get(REG_TURN_COUNT)}  "
-        #           f"other={other}  backlog={listener.in_waiting()}")
-        #     frames = 0
-        #     other = 0
-        #     last_print = now
+        #         # print(target_id)
+        #         else: print(f"servo id is not valid {frame[1]}")

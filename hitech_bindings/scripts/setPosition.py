@@ -23,7 +23,7 @@ class GetStatus(Node):
         req = SetHitechAngle.Request()
         req.hitech_angle.size = 1
         req.hitech_angle.motor_angle = [4095]
-        req.hitech_angle.motor_id = [0x43]
+        req.hitech_angle.motor_id = [0x42]
         req.hitech_angle.motor_turn = [2]
 
         self.future = self.service_caller.call_async(req)

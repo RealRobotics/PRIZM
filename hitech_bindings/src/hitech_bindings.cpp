@@ -147,6 +147,7 @@ void HitechBindings::initPublishers() {
     anglePub_ = this->create_publisher<HitechAngle>("HitechData", 10);
     positionPub_ = this->create_publisher<HitechPosition>("HitechPosition", 10);
     serialPub_ = this->create_publisher<uint8Arr>("/serial_write", 10);
+    statusPub_ = this->create_publisher<HitechStatus>("HitechStatus", 10);
 }
 
 void HitechBindings::setServoPos(int id, int target_angle) {
@@ -271,29 +272,50 @@ void HitechBindings::readHandler(uint8_t servo_id, uint8_t addr,
 }
 
 void HitechBindings::publishServoInfo() {
-    HitechAngle data;
-    HitechPosition position;
+    // HitechAngle data;
+    // HitechPosition position;
 
-    data.motor_id.resize(numServos_);
-    data.motor_angle.resize(numServos_);
-    data.motor_turn.resize(numServos_);
-    data.size = numServos_;
+    // data.motor_id.resize(numServos_);
+    // data.motor_angle.resize(numServos_);
+    // data.motor_turn.resize(numServos_);
+    // data.size = numServos_;
 
-    position.motor_id.resize(numServos_);
-    position.motor_pos.resize(numServos_);
-    position.size = numServos_;
+    // position.motor_id.resize(numServos_);
+    // position.motor_pos.resize(numServos_);
+    // position.size = numServos_;
+
+    // int counter = 0;
+    // for (auto & [key, val] : servoMap_) {
+    //     data.motor_id.at(counter) = key;
+    //     position.motor_id.at(counter) = key;
+    //     data.motor_angle.at(counter) = val.currAngle;
+    //     data.motor_turn.at(counter) = val.currTurn;
+    //     position.motor_pos.at(counter) = val.currPos;
+    //     counter++;
+    // }
+    // anglePub_->publish(data);
+    // positionPub_->publish(position);
+
+    HitechStatus status;
+    status.size = numServos_;
+    status.motor_id.resize(numServos_);
+    status.motor_pos.resize(numServos_);
+    status.pwm.resize(numServos_);
+    status.voltage.resize(numServos_);
 
     int counter = 0;
-    for (auto const& [key, val] : servoMap_) {
-        data.motor_id.at(counter) = key;
-        position.motor_id.at(counter) = key;
-        data.motor_angle.at(counter) = val.currAngle;
-        data.motor_turn.at(counter) = val.currTurn;
-        // position.motor_pos.at(counter) = val.currAngle
+    for (auto& [key, val] : servoMap_) {
+        val.currPos = val.currAngle + val.currTurn * 4 * 4096;
+
+        status.motor_pos.at(counter) = val.currPos * 4096 / 90;
+        status.motor_id.at(counter) = key;
+        status.pwm.at(counter) = val.torque * 100 / 4095;
+        status.voltage.at(counter) = val.voltage / 100;
+
         counter++;
     }
 
-    anglePub_->publish(data);
+    statusPub_->publish(status);
 }
 
 void HitechBindings::publishSerialCommand(std::vector<uint8_t> message) {
@@ -391,10 +413,16 @@ void HitechBindings::setStreamCB_(
                     setStreamReg(incoming_id, WriteTasks::REG_STREAM_0,
                                  setting.addr_0.at(0), setting.addr_0.at(1));
                     break;
+                case 0:
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "nothing set on addr_0 for id %d",
+                                 incoming_id);
+                    break;
                 default:
                     RCLCPP_ERROR(this->get_logger(),
-                                 "Either more than 2 or less than 1 stream "
-                                 "registers were sent to addr_0. Ignoring.");
+                                 "More than 2 streams for id %d "
+                                 "registers were sent to addr_0. Ignoring.",
+                                 incoming_id);
                     break;
             }
             // 4.1 param 1
@@ -410,10 +438,16 @@ void HitechBindings::setStreamCB_(
                     setStreamReg(incoming_id, WriteTasks::REG_STREAM_1,
                                  setting.addr_1.at(0), setting.addr_1.at(1));
                     break;
+                case 0:
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "nothing set on addr_1 for id %d",
+                                 incoming_id);
+                    break;
                 default:
                     RCLCPP_ERROR(this->get_logger(),
-                                 "Either more than 2 or less than 1 stream "
-                                 "registers were sent to addr_1. Ignoring.");
+                                 "More than 2 streams for id %d "
+                                 "registers were sent to addr_1. Ignoring.",
+                                 incoming_id);
                     break;
             }
             // 4.2 param 2
@@ -429,10 +463,16 @@ void HitechBindings::setStreamCB_(
                     setStreamReg(incoming_id, WriteTasks::REG_STREAM_2,
                                  setting.addr_2.at(0), setting.addr_2.at(1));
                     break;
+                case 0:
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "nothing set on addr_2 for id %d",
+                                 incoming_id);
+                    break;
                 default:
                     RCLCPP_ERROR(this->get_logger(),
-                                 "Either more than 2 or less than 1 stream "
-                                 "registers were sent to addr_2. Ignoring.");
+                                 "More than 2 streams for id %d "
+                                 "registers were sent to addr_2. Ignoring.",
+                                 incoming_id);
                     break;
             }
             // 4.3 param 3
@@ -448,10 +488,16 @@ void HitechBindings::setStreamCB_(
                     setStreamReg(incoming_id, WriteTasks::REG_STREAM_3,
                                  setting.addr_3.at(0), setting.addr_3.at(1));
                     break;
+                case 0:
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "nothing set on addr_3 for id %d",
+                                 incoming_id);
+                    break;
                 default:
                     RCLCPP_ERROR(this->get_logger(),
-                                 "Either more than 2 or less than 1 stream "
-                                 "registers were sent to addr_3. Ignoring.");
+                                 "More than 2 streams for id %d "
+                                 "registers were sent to addr_3. Ignoring.",
+                                 incoming_id);
                     break;
             }
         }
@@ -460,17 +506,23 @@ void HitechBindings::setStreamCB_(
 }
 
 void HitechBindings::setStreamTime(uint8_t servo_id, int stream_time) {
-    singleWriteBuilder(WriteTasks::STREAM_TIME, servo_id, stream_time);
+    auto instruction =
+        singleWriteBuilder(WriteTasks::STREAM_TIME, servo_id, stream_time);
+    publishSerialCommand(instruction);
 }
 
 void HitechBindings::toggleStreamMode(uint8_t servo_id, bool toggle) {
-    singleWriteBuilder(WriteTasks::STREAM_TIME, servo_id, toggle);
+    auto instruction =
+        singleWriteBuilder(WriteTasks::STREAM_MODE, servo_id, toggle);
+    publishSerialCommand(instruction);
 }
 
 void HitechBindings::setStreamReg(uint8_t servo_id, WriteTasks stream_addr,
                                   uint8_t reg1, uint8_t reg2) {
     uint16_t stream_reg_combined = reg1 | (reg2 << 8);
-    singleWriteBuilder(stream_addr, servo_id, stream_reg_combined);
+    auto instruction =
+        singleWriteBuilder(stream_addr, servo_id, stream_reg_combined);
+    publishSerialCommand(instruction);
 }
 
 WriteTasks HitechBindings::WriteTaskfromUint(uint8_t val) {

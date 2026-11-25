@@ -17,6 +17,7 @@ set(msg_files
     "msg/HitechAngle.msg"
     "msg/HitechPosition.msg"
     "msg/StreamSettings.msg"
+    "msg/HitechStatus.msg"
 )
 
 set(srv_files

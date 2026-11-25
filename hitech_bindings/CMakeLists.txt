@@ -40,6 +40,7 @@ install(DIRECTORY config
 install(PROGRAMS
   scripts/setPosition.py
   scripts/joyControl.py
+  scripts/setStreamingParams.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

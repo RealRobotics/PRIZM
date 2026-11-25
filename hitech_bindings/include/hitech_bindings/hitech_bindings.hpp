@@ -5,6 +5,7 @@
 #include "prizm_interfaces/msg/claw_extension.hpp"
 #include "prizm_interfaces/msg/hitech_angle.hpp"
 #include "prizm_interfaces/msg/hitech_position.hpp"
+#include "prizm_interfaces/msg/hitech_status.hpp"
 #include "prizm_interfaces/srv/detail/set_hitech_position__struct.hpp"
 #include "prizm_interfaces/srv/set_hitech_angle.hpp"
 #include "prizm_interfaces/srv/set_hitech_position.hpp"
@@ -60,10 +61,10 @@ enum ReadTasks {
 struct hitechData {
     uint8_t run_mode = SERVO_MODE;
     uint16_t currAngle = 0x00;  // Range 0 -> 360. 4096 = 90deg
-    int16_t currTurn = 0x00;    // 1 = 360deg
+    uint16_t currTurn = 0x00;   // 1 = 360deg
     uint16_t currPos = 0x00;    // currTurn * 360 + currAngle
     uint16_t goalAngle = 0x00;  // Range 0 -> 360. 4096 = 90deg
-    int16_t goalTurn = 0x00;    // 1 = 360deg
+    uint16_t goalTurn = 0x00;   // 1 = 360deg
     uint16_t goalPos = 0x00;    // currTurn * 360 + currAngle
     uint16_t currVel = 0x00;
     uint16_t servoMin = 0x0000;
@@ -90,6 +91,7 @@ typedef std::map<uint8_t, hitechData> hitechMap;
 typedef std_msgs::msg::UInt8MultiArray uint8Arr;
 typedef prizm_interfaces::msg::HitechAngle HitechAngle;
 typedef prizm_interfaces::msg::HitechPosition HitechPosition;
+typedef prizm_interfaces::msg::HitechStatus HitechStatus;
 typedef prizm_interfaces::srv::SetHitechAngle SetHitechAngle;
 typedef prizm_interfaces::srv::SetStreamRegisters SetStreamRegisters;
 typedef prizm_interfaces::srv::SetHitechPosition SetHitechPosition;
@@ -157,6 +159,7 @@ class HitechBindings : public rclcpp::Node {
     rclcpp::Publisher<HitechAngle>::SharedPtr anglePub_;
     rclcpp::Publisher<uint8Arr>::SharedPtr serialPub_;
     rclcpp::Publisher<HitechPosition>::SharedPtr positionPub_;
+    rclcpp::Publisher<HitechStatus>::SharedPtr statusPub_;
 
     // subscribers
     rclcpp::Subscription<uint8Arr>::SharedPtr serialSub_;

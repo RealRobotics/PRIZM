@@ -1,0 +1,5 @@
+uint8 size
+uint8[] motor_id
+uint16[] motor_pos
+uint8[] voltage
+uint8[] pwm

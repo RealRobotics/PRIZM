@@ -42,6 +42,27 @@ Replies go to whoever sent the last packets and also to `192.168.2.1:9001`. With
 
 This was set up and tested on BlueOS 1.4.7 (Raspbian 11 host). The files are in [navigator/](navigator).
 
+### From ROS (`hitech_bindings`)
+
+`hitech_bindings` reaches the Feather through `udp_driver` (sender → `192.168.2.2:9000`, receiver on port 9001; see [`udp_config.yaml`](../hitech_bindings/config/udp_config.yaml)):
+
+```bash
+ros2 launch hitech_bindings joy_control.launch.py
+```
+```bash
+ros2 launch hitech_bindings udp_driver.launch.py
+```
+
+`joy_control.launch.py` uses UDP by default. Add `transport:=serial` for a Feather plugged straight into the machine over USB. `serial_driver.launch.py` still does the same. `hitech_driver` listens on both `serial_read` and `udp_read`, publishes commands on both `/serial_write` and `udp_write`, and re-frames the incoming byte stream, so frames split across or packed into one message are handled.
+
+Raw transport check (with the PING/ECHO test sketch):
+
+```bash
+ros2 topic pub --once /udp_write udp_msgs/msg/UdpPacket "{data: [80,73,78,71,10]}"
+```
+
+`ros2 topic echo /udp_read` should then show the bytes for `PONG\n`.
+
 ### What is installed on the Pi
 
 - **`/usr/local/bin/bridges`**: BlueOS's own serial-to-UDP bridge program, copied out of the `blueos-core` container.

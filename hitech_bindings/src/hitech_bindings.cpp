@@ -123,6 +123,11 @@ void HitechBindings::initSubscribers() {
         "serial_read", 10,
         std::bind(&HitechBindings::serialReadCB_, this, std::placeholders::_1));
 
+    // Feather reached through the Navigator's UDP bridge (udp_driver)
+    udpSub_ = this->create_subscription<udpPacket>(
+        "udp_read", 10,
+        std::bind(&HitechBindings::udpReadCB_, this, std::placeholders::_1));
+
     hitechPosSub_ = this->create_subscription<HitechPosition>(
         "/position_input", 10,
         std::bind(&HitechBindings::posSubCB_, this, std::placeholders::_1));
@@ -147,6 +152,7 @@ void HitechBindings::initPublishers() {
     anglePub_ = this->create_publisher<HitechAngle>("HitechData", 10);
     positionPub_ = this->create_publisher<HitechPosition>("HitechPosition", 10);
     serialPub_ = this->create_publisher<uint8Arr>("/serial_write", 10);
+    udpPub_ = this->create_publisher<udpPacket>("udp_write", 10);
     statusPub_ = this->create_publisher<HitechStatus>("HitechStatus", 10);
 }
 
@@ -201,25 +207,60 @@ std::vector<uint8_t> HitechBindings::doubleWriteBuilder(WriteTasks task1,
 }
 
 void HitechBindings::serialReadCB_(const uint8Arr& msg) {
-    size_t data_len = msg.data.size();
-    // fork 1: len 5 or 8
-    switch (data_len) {
-        case 5:
-            // single read
-            singleReadHandler(msg);
-            break;
-        case 8:
-            // double read
-            doubleReadHandler(msg);
-            break;
+    receiveBytes(msg.data);
+}
 
-        default:
-            RCLCPP_ERROR(this->get_logger(),
-                         "Message received was len %ld which is neither 5 or 8 "
-                         "byte long. Check "
-                         "if the data needs tidying or ignore if data was bad.",
-                         data_len);
-            break;
+void HitechBindings::udpReadCB_(const udpPacket& msg) {
+    receiveBytes(msg.data);
+}
+
+void HitechBindings::receiveBytes(const std::vector<uint8_t>& bytes) {
+    rxBuf_.insert(rxBuf_.end(), bytes.begin(), bytes.end());
+
+    size_t skipped = 0;
+    while (!rxBuf_.empty()) {
+        size_t frame_len = 0;
+        if (rxBuf_[0] == 'V') {
+            frame_len = 8;  // double read
+        } else if (rxBuf_[0] == 'v') {
+            frame_len = 5;  // single read
+        }
+        // A header byte can also appear inside data, so only accept it when
+        // the id that follows is one we know.
+        bool plausible = frame_len != 0;
+        if (plausible && rxBuf_.size() >= 2) {
+            uint8_t id = rxBuf_[1];
+            plausible = servoMap_.count(id) || motorMap_.count(id);
+        }
+        if (!plausible) {
+            rxBuf_.erase(rxBuf_.begin());
+            skipped++;
+            continue;
+        }
+        if (rxBuf_.size() < frame_len) {
+            break;  // wait for the rest of the frame
+        }
+
+        uint8Arr frame;
+        frame.data.assign(rxBuf_.begin(), rxBuf_.begin() + frame_len);
+        rxBuf_.erase(rxBuf_.begin(), rxBuf_.begin() + frame_len);
+        if (frame_len == 8) {
+            doubleReadHandler(frame);
+        } else {
+            singleReadHandler(frame);
+        }
+    }
+
+    if (skipped) {
+        RCLCPP_WARN(this->get_logger(),
+                    "Skipped %zu byte(s) that were not part of a valid frame",
+                    skipped);
+    }
+    if (rxBuf_.size() > RX_BUF_MAX) {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Receive buffer overflow, dropping %zu byte(s)",
+                     rxBuf_.size());
+        rxBuf_.clear();
     }
     publishServoInfo();
 }
@@ -323,6 +364,12 @@ void HitechBindings::publishSerialCommand(std::vector<uint8_t> message) {
     outgoing.data = message;
 
     serialPub_->publish(outgoing);
+
+    // Same bytes for the UDP path; udp_sender_node sends them to the
+    // address in its own config, so only data matters here.
+    udpPacket packet;
+    packet.data = message;
+    udpPub_->publish(packet);
 }
 
 void HitechBindings::setAngleCB_(const SetHitechAngle::Request::SharedPtr req,

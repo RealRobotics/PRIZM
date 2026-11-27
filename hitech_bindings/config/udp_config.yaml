@@ -1,0 +1,10 @@
+# UDP link to the CAN Feather through the BlueROV2 Navigator's feather-bridge
+# service (see can_feather_firmware/README.md).
+udp_sender_node:
+  ros__parameters:
+    ip: "192.168.2.2"   # Navigator Pi
+    port: 9000          # bridge listens here
+udp_receiver_node:
+  ros__parameters:
+    ip: "0.0.0.0"       # any local address (topside is 192.168.2.1)
+    port: 9001          # bridge sends here

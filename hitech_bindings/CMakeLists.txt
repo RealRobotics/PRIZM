@@ -12,6 +12,7 @@ find_package(prizm_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(udp_msgs REQUIRED)
 
 include_directories(include)
 
@@ -23,6 +24,7 @@ ament_target_dependencies(hitech_driver
   prizm_interfaces
   rclcpp
   std_msgs
+  udp_msgs
 )
 
 install(TARGETS
@@ -91,6 +93,7 @@ if(BUILD_TESTING)
     prizm_interfaces
     std_srvs
     std_msgs
+    udp_msgs
     rclcpp
   )
 

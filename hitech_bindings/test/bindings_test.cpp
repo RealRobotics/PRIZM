@@ -80,6 +80,42 @@ TEST_F(TestMotorDriver, ReadPosTurn) {
     ASSERT_EQ(node_->servoMap_[0x10].currTurn, 1);
 }
 
+// receiveBytes: frames arrive over serial/UDP in arbitrary chunks
+TEST_F(TestMotorDriver, ReceiveTwoFramesInOneChunk) {
+    node_->receiveBytes(std::vector<uint8_t>{
+        'v', 0x10, ReadTasks::POSITION, 0xA8, 0x16,  // servo 0x10
+        'V', 0x21, ReadTasks::POSITION, 0x10, 0x00, ReadTasks::TURN, 0x02,
+        0x00});  // servo 0x21
+    ASSERT_EQ(node_->servoMap_[0x10].currAngle, 5800);
+    ASSERT_EQ(node_->servoMap_[0x21].currAngle, 16);
+    ASSERT_EQ(node_->servoMap_[0x21].currTurn, 2);
+}
+
+TEST_F(TestMotorDriver, ReceiveFrameSplitAcrossChunks) {
+    node_->receiveBytes(std::vector<uint8_t>{'V', 0x10, ReadTasks::POSITION});
+    ASSERT_EQ(node_->servoMap_[0x10].currAngle, 0);  // incomplete: no update
+    node_->receiveBytes(
+        std::vector<uint8_t>{0xA8, 0x16, ReadTasks::TURN, 0x01, 0x00});
+    ASSERT_EQ(node_->servoMap_[0x10].currAngle, 5800);
+    ASSERT_EQ(node_->servoMap_[0x10].currTurn, 1);
+}
+
+TEST_F(TestMotorDriver, ReceiveSkipsJunkBeforeFrame) {
+    node_->receiveBytes(std::vector<uint8_t>{'H', 'i', '\n', 0x00, 'v', 0x10,
+                                             ReadTasks::POSITION, 0xA8, 0x16});
+    ASSERT_EQ(node_->servoMap_[0x10].currAngle, 5800);
+}
+
+TEST_F(TestMotorDriver, ReceiveSkipsUnknownId) {
+    // 'v' followed by an id we don't have is treated as junk, and the real
+    // frame right after it is still parsed.
+    node_->receiveBytes(std::vector<uint8_t>{
+        'v', 0x55, ReadTasks::POSITION, 0x01, 0x00,  // unknown servo
+        'v', 0x10, ReadTasks::POSITION, 0xA8, 0x16});
+    ASSERT_EQ(node_->servoMap_.count(0x55), 0u);
+    ASSERT_EQ(node_->servoMap_[0x10].currAngle, 5800);
+}
+
 int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);
     RclCppFixture g_rclcppfixture(argc, argv);

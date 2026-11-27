@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/u_int8_multi_array.hpp>
+#include <udp_msgs/msg/udp_packet.hpp>
 
 #include "hitec-can-servo-reg-public.h"
 #include "prizm_interfaces/msg/claw_extension.hpp"
@@ -89,6 +90,7 @@ struct hitechData {
 
 typedef std::map<uint8_t, hitechData> hitechMap;
 typedef std_msgs::msg::UInt8MultiArray uint8Arr;
+typedef udp_msgs::msg::UdpPacket udpPacket;
 typedef prizm_interfaces::msg::HitechAngle HitechAngle;
 typedef prizm_interfaces::msg::HitechPosition HitechPosition;
 typedef prizm_interfaces::msg::HitechStatus HitechStatus;
@@ -155,14 +157,19 @@ class HitechBindings : public rclcpp::Node {
     std::vector<int64_t> servoMins_, servoMaxs_, servoZeros_;
     std::vector<int64_t> speedMins_, speedMaxs_;
     std::vector<int64_t> servoIds_, motorIds_;
+    // bytes received from the Feather that don't yet form a complete frame
+    std::vector<uint8_t> rxBuf_;
+    static constexpr size_t RX_BUF_MAX = 256;
     // publishers
     rclcpp::Publisher<HitechAngle>::SharedPtr anglePub_;
     rclcpp::Publisher<uint8Arr>::SharedPtr serialPub_;
+    rclcpp::Publisher<udpPacket>::SharedPtr udpPub_;
     rclcpp::Publisher<HitechPosition>::SharedPtr positionPub_;
     rclcpp::Publisher<HitechStatus>::SharedPtr statusPub_;
 
     // subscribers
     rclcpp::Subscription<uint8Arr>::SharedPtr serialSub_;
+    rclcpp::Subscription<udpPacket>::SharedPtr udpSub_;
     rclcpp::Subscription<HitechPosition>::SharedPtr hitechPosSub_;
 
     // services
@@ -174,6 +181,7 @@ class HitechBindings : public rclcpp::Node {
 
     // callbacks
     void serialReadCB_(const uint8Arr& msg);
+    void udpReadCB_(const udpPacket& msg);
     void setAngleCB_(const SetHitechAngle::Request::SharedPtr req,
                      SetHitechAngle::Response::SharedPtr res);
     void setStreamCB_(const SetStreamRegisters::Request::SharedPtr req,
@@ -197,6 +205,17 @@ class HitechBindings : public rclcpp::Node {
 
     void singleReadHandler(const uint8Arr& msg);
     void doubleReadHandler(const uint8Arr& msg);
+
+    /**
+     * @brief Feed raw bytes from the Feather (serial or UDP) into the frame
+     * parser. Bytes are buffered until they form a complete 'V' (8-byte) or
+     * 'v' (5-byte) frame for a known servo/motor id; anything else is skipped
+     * one byte at a time to resync. Handles frames split across or packed
+     * into one transport message.
+     *
+     * @param bytes raw bytes as received
+     */
+    void receiveBytes(const std::vector<uint8_t>& bytes);
 
     void publishServoInfo();
     void publishSerialCommand(std::vector<uint8_t> message);

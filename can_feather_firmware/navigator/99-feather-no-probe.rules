@@ -1,0 +1,3 @@
+# Adafruit Feather RP2040 CAN: root-only, so the BlueOS Ping service (uid 1000) cannot probe it
+# and stop code.py. The feather-bridge service runs as root and still opens it.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="239a", ATTRS{idProduct}=="8130", OWNER:="root", GROUP:="root", MODE:="0600", ENV{ID_MM_DEVICE_IGNORE}="1"

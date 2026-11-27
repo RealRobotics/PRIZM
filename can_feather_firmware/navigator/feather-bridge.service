@@ -1,0 +1,13 @@
+[Unit]
+Description=Feather RP2040 CAN serial-UDP bridge (UDP 9000 <-> Feather data port)
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+ExecStartPre=/bin/stty -F /dev/serial/by-id/usb-Adafruit_Feather_RP2040_CAN_DF63CC284F6F2C22-if02 115200 raw -echo
+ExecStart=/usr/local/bin/bridges -u 192.168.2.1:9001 -p /dev/serial/by-id/usb-Adafruit_Feather_RP2040_CAN_DF63CC284F6F2C22-if02:115200 --no-udp-disconnection --listen-port 9000
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
